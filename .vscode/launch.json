@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "[Frontend] Debug server",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceRoot}/frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["exec", "--", "next", "dev", "--port", "3008"]
+    },
+    {
+      "name": "[Frontend] Debug Chrome",
+      "type": "chrome",
+      // brew install homebrew/cask-versions/google-chrome-canary
+      "runtimeExecutable": "canary", // ctrl-command-y
+      "request": "launch",
+      "url": "http://localhost:3008",
+      "webRoot": "${workspaceFolder}/frontend"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug All",
+      "configurations": ["[Frontend] Debug server", "[Frontend] Debug Chrome"]
+    }
+  ]
+}
