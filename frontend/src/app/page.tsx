@@ -1,13 +1,13 @@
 "use client";
 
-import { assert } from "console";
-import { useMemo, useRef, useState } from "react";
-import useSWRImmutable from "swr/immutable";
+import { assert } from 'console';
+import { useMemo, useRef, useState } from 'react';
+import useSWRImmutable from 'swr/immutable';
 
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
-import { useScript } from "../hooks/useScript";
+import { useScript } from '../hooks/useScript';
 
 function useSqlite3() {
   const sqliteStatus = useScript("/jswasm/sqlite3.js");
@@ -37,7 +37,7 @@ export default function Home() {
   async function handleStart() {
     setDidStart(true);
 
-    const downloadUrl = "/GCF_000002765.3.db";
+    const downloadUrl = "/GCF_000002765.6.db";
 
     let bytes = 0;
 
@@ -68,7 +68,6 @@ export default function Home() {
       if (value) {
         data.set(value, bytes);
         bytes += value.length;
-        console.log("Received " + bytes + " bytes");
         // TODO https://stackoverflow.com/a/72903731/1118565 is length the right
         // denominator?
         setProgress((bytes / Number(length)) * 100);
