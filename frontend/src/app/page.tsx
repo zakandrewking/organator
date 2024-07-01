@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 
 import { useScript } from '../hooks/useScript';
+import Main from './Main';
 
 function useSqlite3() {
   const sqliteStatus = useScript("/jswasm/sqlite3.js");
@@ -108,13 +109,19 @@ export default function Home() {
 
   return (
     <main className="p-4 flex flex-col gap-2">
-      <div>
-        <Button onClick={handleStart} disabled={didStart}>
-          Start
-        </Button>
-      </div>
-      <Progress value={progress} className="max-w-64" />
-      {status}
+      {db ? (
+        <Main db={db} />
+      ) : (
+        <>
+          <div>
+            <Button onClick={handleStart} disabled={didStart}>
+              Start
+            </Button>
+          </div>
+          <Progress value={progress} className="max-w-64" />
+          {status}
+        </>
+      )}
     </main>
   );
 }
