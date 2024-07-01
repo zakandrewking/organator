@@ -15,7 +15,7 @@
       // brew install homebrew/cask-versions/google-chrome-canary
       "runtimeExecutable": "canary", // ctrl-command-y
       "request": "launch",
-      "url": "http://localhost:3008",
+      "url": "http://localhost:3008/organator",
       "webRoot": "${workspaceFolder}/frontend"
     }
   ],

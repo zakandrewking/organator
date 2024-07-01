@@ -5,12 +5,13 @@ import useSWRImmutable from 'swr/immutable';
 
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { basePath } from '@/config';
 
 import { useScript } from '../hooks/useScript';
 import Main from './Main';
 
 function useSqlite3() {
-  const sqliteStatus = useScript("/jswasm/sqlite3.js");
+  const sqliteStatus = useScript(`${basePath}/jswasm/sqlite3.js`);
 
   const { data: sqlite3 } = useSWRImmutable(
     sqliteStatus === "ready" ? "/sqlite3" : null,
@@ -37,7 +38,7 @@ export default function Home() {
   async function handleStart() {
     setDidStart(true);
 
-    const downloadUrl = "/GCF_000002765.6.db";
+    const downloadUrl = `${basePath}/GCF_000002765.6.db`;
 
     let bytes = 0;
 
