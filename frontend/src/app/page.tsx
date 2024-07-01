@@ -1,7 +1,6 @@
 "use client";
 
-import { assert } from 'console';
-import { useMemo, useRef, useState } from 'react';
+import { useState } from 'react';
 import useSWRImmutable from 'swr/immutable';
 
 import { Button } from '@/components/ui/button';
@@ -92,17 +91,8 @@ export default function Home() {
         dbData.byteLength,
         dbData.byteLength,
         sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE
-        // Optionally:
-        // | sqlite3.capi.SQLITE_DESERIALIZE_RESIZEABLE
       );
       db.checkRc(rc);
-      db.exec({
-        sql: "SELECT * from features limit 10",
-        rowMode: "object",
-        callback: function (row: any) {
-          console.log(row);
-        },
-      });
       return db;
     }
   );
