@@ -5,6 +5,7 @@ import useSWRImmutable from 'swr/immutable';
 
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { H3 } from '@/components/ui/typography';
 import { basePath } from '@/config';
 
 import { useScript } from '../hooks/useScript';
@@ -104,6 +105,10 @@ export default function Home() {
         <Main db={db} />
       ) : (
         <>
+          <H3>
+            This will load a 70MB sqlite database into memory -- use with
+            caution!
+          </H3>
           <div>
             <Button onClick={handleStart} disabled={didStart}>
               Start
