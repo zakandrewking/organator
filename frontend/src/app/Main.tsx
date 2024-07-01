@@ -16,7 +16,6 @@ export default function Main({ db }: { db: any }) {
         },
       });
     });
-    return null;
   });
 
   return (
