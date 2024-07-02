@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from 'react';
-import useSWRImmutable from 'swr/immutable';
+import { useState } from "react";
+import useSWRImmutable from "swr/immutable";
 
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { H3 } from '@/components/ui/typography';
-import { basePath } from '@/config';
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { H3 } from "@/components/ui/typography";
+import { basePath } from "@/config";
+import useDb from "@/hooks/useDb";
 
-import { useScript } from '../hooks/useScript';
-import Main from './Main';
+import { useScript } from "../hooks/useScript";
+import Main from "./Main";
 
 function useSqlite3() {
   const sqliteStatus = useScript(`${basePath}/jswasm/sqlite3.js`);
@@ -31,6 +32,7 @@ function useSqlite3() {
 export default function Home() {
   const { sqlite3 } = useSqlite3();
   const [dbData, setDbData] = useState<Uint8Array | null>(null);
+  const { db, setDb } = useDb();
 
   const [didStart, setDidStart] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -78,31 +80,29 @@ export default function Home() {
     });
   }
 
-  const { data: db } = useSWRImmutable(
-    dbData && sqlite3 ? "/db" : null,
-    async () => {
-      if (!dbData || !sqlite3) {
-        throw Error("dbData or sqlite3 is null.");
-      }
-      const p = sqlite3.wasm.allocFromTypedArray(dbData);
-      const db = new sqlite3.oo1.DB();
-      const rc = sqlite3.capi.sqlite3_deserialize(
-        db.pointer,
-        "main",
-        p,
-        dbData.byteLength,
-        dbData.byteLength,
-        sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE
-      );
-      db.checkRc(rc);
-      return db;
+  useSWRImmutable(dbData && sqlite3 && !db ? "/db" : null, async () => {
+    if (!dbData || !sqlite3) {
+      throw Error("dbData or sqlite3 is null.");
     }
-  );
+    const p = sqlite3.wasm.allocFromTypedArray(dbData);
+    const db = new sqlite3.oo1.DB();
+    const rc = sqlite3.capi.sqlite3_deserialize(
+      db.pointer,
+      "main",
+      p,
+      dbData.byteLength,
+      dbData.byteLength,
+      sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE
+    );
+    db.checkRc(rc);
+    setDb(db);
+    return db;
+  });
 
   return (
     <main className="p-4 flex flex-col gap-2">
       {db ? (
-        <Main db={db} />
+        <Main />
       ) : (
         <>
           <H3>
