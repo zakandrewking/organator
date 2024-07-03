@@ -1,127 +1,75 @@
 "use client";
 
-import { useState } from 'react';
-import useSWRImmutable from 'swr/immutable';
+import { ST } from "next/dist/shared/lib/utils";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { mutate } from "swr";
+import useSWRImmutable from "swr/immutable";
 
-import { Button } from '@/components/ui/button';
-import Container from '@/components/ui/container';
-import { Progress } from '@/components/ui/progress';
-import { H3 } from '@/components/ui/typography';
-import { basePath } from '@/config';
-import useDb from '@/hooks/useDb';
+import { Button } from "@/components/ui/button";
+import Container from "@/components/ui/container";
+import { List, ListItem, ListItemContent } from "@/components/ui/list";
+import { Stack } from "@/components/ui/stack";
+import { H3, H4 } from "@/components/ui/typography";
+import useQuery from "@/hooks/useQuery";
 
-import { useScript } from '../../hooks/useScript';
-import Main from './Main';
+export default function Main() {
+  const searchParams = useSearchParams();
 
-function useSqlite3() {
-  const sqliteStatus = useScript(`${basePath}/jswasm/sqlite3.js`);
+  const page = Number(searchParams.get("page")) || 1;
 
-  const { data: sqlite3 } = useSWRImmutable(
-    sqliteStatus === "ready" ? "/sqlite3" : null,
-    async (): Promise<any> => {
-      return await new Promise((resolve) => {
-        (window as any).sqlite3InitModule().then(function (sqlite3: any) {
-          resolve(sqlite3);
-        });
-      });
+  const first10Genes = useQuery(
+    `/first10Genes?page=${page}`,
+    `select * from features limit 10 offset ${(page - 1) * 10}`,
+    (row) => {
+      row["attributes"] = JSON.parse(row["attributes"]);
+      return row;
     }
   );
 
-  return { sqlite3 };
-}
-
-export default function Home() {
-  const { sqlite3 } = useSqlite3();
-  const [dbData, setDbData] = useState<Uint8Array | null>(null);
-  const { db, setDb } = useDb();
-
-  const [didStart, setDidStart] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState("idle");
-
-  // TODO move db loading to layout so it applies everywhere in (main)
-  // TODO move the actual functionality into useDb
-
-  async function handleStart() {
-    setDidStart(true);
-
-    const downloadUrl = `${basePath}/GCF_000002765.6.db`;
-
-    let bytes = 0;
-
-    const response = await fetch(downloadUrl);
-    const body = response.body;
-    const length = response.headers.get("Content-Length");
-    if (!length) {
-      throw Error("Content-Length header is missing.");
-    }
-    if (!body) {
-      throw Error("Response body is null.");
-    }
-    let data = new Uint8Array(Number(length));
-
-    const reader = body.getReader();
-    reader.read().then(function processText({ done, value }) {
-      if (done) {
-        console.log("Stream complete");
-        setDbData(data);
-        setProgress(100);
-        setStatus("ready");
-        return;
-      }
-      if (!length) {
-        throw Error("Content-Length header is missing.");
-      }
-      setStatus("downloading");
-      if (value) {
-        data.set(value, bytes);
-        bytes += value.length;
-        // TODO https://stackoverflow.com/a/72903731/1118565 is length the right
-        // denominator?
-        setProgress((bytes / Number(length)) * 100);
-      }
-      reader.read().then(processText);
-    });
-  }
-
-  useSWRImmutable(dbData && sqlite3 && !db ? "/db" : null, async () => {
-    if (!dbData || !sqlite3) {
-      throw Error("dbData or sqlite3 is null.");
-    }
-    const p = sqlite3.wasm.allocFromTypedArray(dbData);
-    const db = new sqlite3.oo1.DB();
-    const rc = sqlite3.capi.sqlite3_deserialize(
-      db.pointer,
-      "main",
-      p,
-      dbData.byteLength,
-      dbData.byteLength,
-      sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE
-    );
-    db.checkRc(rc);
-    setDb(db);
-    return db;
-  });
+  const geneCount = useQuery(
+    "/geneCount",
+    "select count(*) as count from features"
+  );
 
   return (
-    <Container gap={2}>
-      {db ? (
-        <Main />
-      ) : (
-        <>
-          <H3>
-            This will load a 70MB sqlite database into memory -- use with
-            caution!
-          </H3>
-          <div>
-            <Button onClick={handleStart} disabled={didStart}>
-              Start
-            </Button>
-          </div>
-          <Progress value={progress} className="max-w-64" />
-          {status}
-        </>
-      )}
+    <Container>
+      <H3>Plasmodium falciparum (Malaria) Genes</H3>
+      <H4>Total Genes: {geneCount && geneCount[0].count}</H4>
+      <List>
+        <div></div>
+        {first10Genes &&
+          first10Genes.map((gene: any) => (
+            <ListItem key={gene.id}>
+              <ListItemContent href={`/gene?id=${encodeURI(gene.id)}`}>
+                <Stack direction="col" alignItems="start" gap={0}>
+                  <div>ID: {gene.id}</div>
+                  <div>
+                    Loc: {gene.start} - {gene.end}
+                  </div>
+                  <div>Strand: {gene.strand}</div>
+                  <div>Product: {gene.attributes.product}</div>
+                </Stack>
+              </ListItemContent>
+            </ListItem>
+          ))}
+        <Stack
+          direction="row"
+          gap={2}
+          justifyContent="between"
+          className="w-full mt-4"
+        >
+          <Button asChild>
+            <Link href={page > 1 ? `/?page=${page - 1}` : ""}>
+              Previous Page
+            </Link>
+          </Button>
+          <div>Page: {page}</div>
+          <Button asChild>
+            <Link href={`/?page=${page + 1}`}>Next Page</Link>
+          </Button>
+        </Stack>
+      </List>
     </Container>
   );
 }

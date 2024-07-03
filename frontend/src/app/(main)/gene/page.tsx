@@ -1,16 +1,68 @@
 "use client";
 
-import { useSearchParams } from 'next/navigation';
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-import Container from '@/components/ui/container';
-import { H3 } from '@/components/ui/typography';
+import { Button } from "@/components/ui/button";
+import Container from "@/components/ui/container";
+import { Stack } from "@/components/ui/stack";
+import { H3, H4 } from "@/components/ui/typography";
+import useQuery from "@/hooks/useQuery";
 
 export default function Gene() {
   const searchParams = useSearchParams();
 
+  const geneRows = useQuery(
+    `/gene?id=${searchParams.get("id")}`,
+    `select * from features where id = '${searchParams.get("id")}'`,
+    (row: any) => {
+      row["attributes"] = JSON.parse(row["attributes"]);
+      return row;
+    }
+  );
+  const gene = geneRows && geneRows[0];
+
+  const sequenceRaw = useQuery(
+    gene && `/sequence?id=${searchParams.get("id")}`,
+    `select * from sequences where start > ${
+      gene && gene.start - 80
+    } and start < ${gene && gene.end}`
+  );
+
+  const sequenceFirstTrim =
+    sequenceRaw &&
+    sequenceRaw.map((seq: any, i: number) => {
+      return {
+        ...seq,
+        seq: i === 0 ? seq.seq.slice(gene.start - seq.start) : seq.seq,
+      };
+    });
+  const sequence =
+    sequenceFirstTrim &&
+    sequenceFirstTrim.map((seq: any, i: number) => {
+      return {
+        ...seq,
+        seq:
+          i === sequenceFirstTrim.length - 1
+            ? seq.seq.slice(0, gene.end - seq.start)
+            : seq.seq,
+      };
+    });
+
   return (
     <Container>
+      <Button asChild className="mb-6">
+        <Link href="/">{"<"} Genes</Link>
+      </Button>
       <H3>Gene: {searchParams.get("id")}</H3>
+      <H4>
+        Loc: {gene && gene.start} - {gene && gene.end}
+      </H4>
+      <H4>Sequence</H4>
+      <Stack direction="col" gap={2} alignItems="start" className="font-mono">
+        {sequence &&
+          sequence.map((seq: any) => <div key={seq.id}>{seq.seq}</div>)}
+      </Stack>
     </Container>
   );
 }
