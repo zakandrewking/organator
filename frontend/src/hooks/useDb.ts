@@ -1,9 +1,9 @@
-import { useContext } from "react";
+import { useContext } from 'react';
 
-import { basePath } from "@/config";
-import { DbStoreContext } from "@/stores/DbStore";
+import { basePath } from '@/config';
+import { DbStoreContext } from '@/stores/DbStore';
 
-import useSqlite3 from "./useSqlite3";
+import useSqlite3 from './useSqlite3';
 
 export default function useDb() {
   const { state, dispatch } = useContext(DbStoreContext);
@@ -62,7 +62,6 @@ export default function useDb() {
     const reader = body.getReader();
     reader.read().then(function processText({ done, value }) {
       if (done) {
-        console.log("Stream complete");
         dispatch({ status: "done downloading", progress: 100 });
         createDb(data);
         return;
