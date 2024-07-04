@@ -1,5 +1,8 @@
 "use client";
 
+// TODO use indexedDb to store the data
+// TODO github pages version is not keeping state between pages
+
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
