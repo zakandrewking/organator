@@ -7,7 +7,7 @@ import { H3 } from '@/components/ui/typography';
 import useDb from '@/hooks/useDb';
 
 export default function DownloadDb() {
-  const { progress, handleStart, didStart, status } = useDb();
+  const { progress, handleStart, status } = useDb();
 
   return (
     <Container gap={2}>
@@ -15,9 +15,7 @@ export default function DownloadDb() {
         This will load a 70MB sqlite database into memory -- use with caution!
       </H3>
       <div>
-        <Button onClick={handleStart} disabled={didStart}>
-          Start
-        </Button>
+        <Button onClick={handleStart}>Start</Button>
       </div>
       <Progress value={progress} className="max-w-64" />
       {status}
