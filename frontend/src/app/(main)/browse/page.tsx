@@ -15,9 +15,6 @@ const TICK_LENGTH = 6;
 const pixelsPerTick = 100;
 
 export default function Browse() {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const { width } = useContainerDimensions(svgRef);
-
   const sequences = useQuery("/browse", "select * from sequences limit 1");
 
   const seq = !sequences ? "" : sequences.map((seq: any) => seq.seq).join("");
@@ -65,7 +62,7 @@ export default function Browse() {
   };
 
   const getItem = (i: number) => (
-    <text fill="hsl(var(--foreground))">AppendedSvgNode</text>
+    <text fill="hsl(var(--foreground))">AppendedSvgNode {i + 1}</text>
   );
 
   return (
@@ -86,8 +83,8 @@ export default function Browse() {
           Reset
         </Button>
       </Stack>
-      <VirtualList count={5} itemWidth={200} width={width} getItem={getItem} />
-      <svg className="w-full" ref={svgRef}>
+      <VirtualList count={150} itemWidth={200} getItem={getItem} />
+      <svg className="w-full">
         <g transform={`translate(0, 20)`} width="100%"></g>
         <g transform={`translate(5, 40)`}>
           <text
