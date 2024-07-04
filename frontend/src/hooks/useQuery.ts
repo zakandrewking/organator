@@ -1,7 +1,7 @@
-import { mutate } from "swr";
-import useSWRImmutable from "swr/immutable";
+import { mutate } from 'swr';
+import useSWRImmutable from 'swr/immutable';
 
-import useDb from "./useDb";
+import useDb from './useDb';
 
 export default function useQuery(
   name: string | null,

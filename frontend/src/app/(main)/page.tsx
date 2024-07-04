@@ -1,17 +1,14 @@
 "use client";
 
-import { ST } from "next/dist/shared/lib/utils";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { mutate } from "swr";
-import useSWRImmutable from "swr/immutable";
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
-import { Button } from "@/components/ui/button";
-import Container from "@/components/ui/container";
-import { List, ListItem, ListItemContent } from "@/components/ui/list";
-import { Stack } from "@/components/ui/stack";
-import { H3, H4 } from "@/components/ui/typography";
-import useQuery from "@/hooks/useQuery";
+import { Button } from '@/components/ui/button';
+import Container from '@/components/ui/container';
+import { List, ListItem, ListItemContent } from '@/components/ui/list';
+import { Stack } from '@/components/ui/stack';
+import { H3, H4 } from '@/components/ui/typography';
+import useQuery from '@/hooks/useQuery';
 
 export default function Main() {
   const searchParams = useSearchParams();
@@ -33,8 +30,11 @@ export default function Main() {
   );
 
   return (
-    <Container>
-      <H3>Plasmodium falciparum (Malaria) Genes</H3>
+    <Container gap={4}>
+      <H3 gutterBottom={false}>Plasmodium falciparum (Malaria) Genes</H3>
+      <Button asChild>
+        <Link href="/browse">Browse</Link>
+      </Button>
       <H4>Total Genes: {geneCount && geneCount[0].count}</H4>
       <List>
         <div></div>

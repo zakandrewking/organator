@@ -1,14 +1,14 @@
 "use client";
 
 import { scaleLinear } from 'd3-scale';
-import { useMemo, useRef } from 'react';
+import Link from 'next/link';
+import { useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
 import Container from '@/components/ui/container';
 import { Stack } from '@/components/ui/stack';
 import { H2, H3 } from '@/components/ui/typography';
 import VirtualList from '@/components/VirtualList';
-import useContainerDimensions from '@/hooks/useContainerDimensions';
 import useQuery from '@/hooks/useQuery';
 
 const TICK_LENGTH = 6;
@@ -36,14 +36,8 @@ export default function Browse() {
   // use d3 for this if we need nice transitions at it ends up beeing a lot of
   // boilerplate https://www.react-graph-gallery.com/build-axis-with-react
 
-  // LEFT OFF zoom
+  // zoom
   // https://observablehq.com/@d3/programmatic-zoom
-  // and virtualized
-  // https://www.npmjs.com/package/react-window-infinite-loader ... doesn't
-  // support SVG
-  // more
-  // https://stackoverflow.com/questions/43817118/how-to-get-the-width-of-a-react-element
-  //
 
   const handleZoomIn = () => {
     // handle zoom in logic here
@@ -75,6 +69,9 @@ export default function Browse() {
 
   return (
     <Container>
+      <Button asChild>
+        <Link href="/">{"<"} Genes</Link>
+      </Button>
       <H2>Browse</H2>
       <H3>Genes</H3>
       <Stack gap={2} direction="row" className="mb-6">

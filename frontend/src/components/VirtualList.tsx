@@ -26,7 +26,7 @@ export default function VirtualSvgList({
   const firstItemDisplacement = indexDisplacement * itemWidth;
 
   return (
-    <div className="w-full overflow-auto" ref={ref}>
+    <div className="w-full overflow-auto always-scrollbar" ref={ref}>
       <svg width={count * itemWidth} height="45px">
         {Array.from({ length: renderCount }).map((_, i) => (
           <g

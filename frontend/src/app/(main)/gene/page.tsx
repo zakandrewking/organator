@@ -1,13 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
-import { Button } from "@/components/ui/button";
-import Container from "@/components/ui/container";
-import { Stack } from "@/components/ui/stack";
-import { H3, H4 } from "@/components/ui/typography";
-import useQuery from "@/hooks/useQuery";
+import { Button } from '@/components/ui/button';
+import Container from '@/components/ui/container';
+import { Stack } from '@/components/ui/stack';
+import { H3, H4 } from '@/components/ui/typography';
+import useQuery from '@/hooks/useQuery';
+
+const maxRows = 1000;
+const rowLen = 80;
 
 export default function Gene() {
   const searchParams = useSearchParams();
@@ -24,10 +27,14 @@ export default function Gene() {
 
   const sequenceRaw = useQuery(
     gene && `/sequence?id=${searchParams.get("id")}`,
-    `select * from sequences where start > ${
-      gene && gene.start - 80
-    } and start < ${gene && gene.end}`
+    `select * from sequences
+     where seqid = '${gene && gene.seqid}' and
+     start > ${gene && gene.start - rowLen} and
+     start < ${gene && gene.end}
+     limit ${maxRows}`
   );
+
+  const maxedOut = sequenceRaw && sequenceRaw.length === maxRows;
 
   const sequenceFirstTrim =
     sequenceRaw &&
@@ -58,10 +65,15 @@ export default function Gene() {
       <H4>
         Loc: {gene && gene.start} - {gene && gene.end}
       </H4>
-      <H4>Sequence</H4>
+      <H4>
+        Sequence {maxedOut && `(Maxed out at ${rowLen * maxRows} basepairs)`}
+      </H4>
       <Stack direction="col" gap={2} alignItems="start" className="font-mono">
         {sequence &&
           sequence.map((seq: any) => <div key={seq.id}>{seq.seq}</div>)}
+        {maxedOut && (
+          <div>... Maxed out at {rowLen * maxRows} basepairs ...</div>
+        )}
       </Stack>
     </Container>
   );
