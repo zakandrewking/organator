@@ -62,7 +62,15 @@ export default function Browse() {
   };
 
   const getItem = (i: number) => (
-    <text fill="hsl(var(--foreground))">AppendedSvgNode {i + 1}</text>
+    <>
+      <text fill="hsl(var(--foreground))">AppendedSvgNode {i + 1}</text>
+      <g transform="translate(0, 20)">
+        <path
+          d={["M", 0, 0, "L", 200, 0].join(" ")}
+          stroke="hsl(var(--foreground))"
+        />
+      </g>
+    </>
   );
 
   return (

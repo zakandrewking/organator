@@ -1,3 +1,4 @@
+import './VirtualList.css';
 import { ReactNode, useRef } from 'react';
 
 import useContainerDimensions from '@/hooks/useContainerDimensions';
@@ -26,7 +27,7 @@ export default function VirtualSvgList({
 
   return (
     <div className="w-full overflow-auto" ref={ref}>
-      <svg width={count * itemWidth} height="40px">
+      <svg width={count * itemWidth} height="45px">
         {Array.from({ length: renderCount }).map((_, i) => (
           <g
             transform={`translate(${

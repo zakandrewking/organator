@@ -1,0 +1,7 @@
+::-webkit-scrollbar {
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--secondary-foreground));
+  border-radius: 10px;
+}
