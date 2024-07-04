@@ -86,15 +86,9 @@ export default function Browse() {
           Reset
         </Button>
       </Stack>
+      <VirtualList count={5} itemWidth={200} width={width} getItem={getItem} />
       <svg className="w-full" ref={svgRef}>
-        <g transform={`translate(0, 20)`} width="100%">
-          <VirtualList
-            count={5}
-            itemWidth={200}
-            width={width}
-            getItem={getItem}
-          />
-        </g>
+        <g transform={`translate(0, 20)`} width="100%"></g>
         <g transform={`translate(5, 40)`}>
           <text
             y="15"
