@@ -15,9 +15,15 @@ export default function Downloads() {
   const router = useRouter();
   const { dispatch } = useContext(DbStoreContext);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     setIsDeleting(true);
-    deleteFile();
+    try {
+      await deleteFile();
+    } catch (e) {
+      // TODO snackbar
+      console.error(e);
+      return;
+    }
     dispatch({ ...dbStoreInitialState, status: "idle" });
     router.push("/");
   };

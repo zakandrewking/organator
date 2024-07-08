@@ -50,10 +50,25 @@ export default function useIndexedDb(fileName: string) {
     });
   };
 
-  const deleteFile = () => {
-    // TODO catch error & throw toast
-    indexedDB.deleteDatabase(fileName);
-  };
+  const deleteFile = async () =>
+    new Promise<void>((resolve, reject) => {
+      if (!idb) {
+        throw Error("no database");
+      }
+      const transaction = idb.transaction([fileName], "readwrite");
+      const store = transaction.objectStore(fileName);
+      store.delete(1);
+
+      transaction.oncomplete = () => {
+        console.log("Done deleting from indexedDB");
+        resolve();
+      };
+
+      transaction.onerror = (event) => {
+        console.error("Error deleting file", event);
+        reject(event);
+      };
+    });
 
   const createFile = (data: any) => {
     if (!idb) {
