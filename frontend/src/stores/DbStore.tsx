@@ -10,11 +10,14 @@ interface DbStore {
 
 export const dbStoreInitialState = {
   db: null,
-  status: "idle",
+  status: "loading sqlite3",
   progress: 0,
 };
 
 function reducer(state: DbStore, action: Partial<DbStore>) {
+  if (action.status && state.status != action.status) {
+    console.log("status", action.status);
+  }
   const newState = {
     ...state,
     ...action,

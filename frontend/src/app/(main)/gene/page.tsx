@@ -70,7 +70,7 @@ export default function Gene() {
       </H4>
       <Stack direction="col" gap={2} alignItems="start" className="font-mono">
         {sequence &&
-          sequence.map((seq: any) => <div key={seq.id}>{seq.seq}</div>)}
+          sequence.map((seq: any, i: number) => <div key={i}>{seq.seq}</div>)}
         {maxedOut && (
           <div>... Maxed out at {rowLen * maxRows} basepairs ...</div>
         )}

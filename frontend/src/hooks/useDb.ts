@@ -1,20 +1,42 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
+import useSWRImmutable from 'swr/immutable';
 
 import { basePath } from '@/config';
 import { DbStoreContext } from '@/stores/DbStore';
 
+import useIndexedDb from './useIndexedDb';
 import useSqlite3 from './useSqlite3';
 
 export default function useDb() {
   const { state, dispatch } = useContext(DbStoreContext);
   const sqlite3 = useSqlite3();
+  const { readFile, createFile, idb } = useIndexedDb("db");
+
+  const { data: dbNotSaved } = useSWRImmutable(
+    idb && sqlite3 ? "/saved-db" : null,
+    async () => {
+      dispatch({ status: "checking idb" });
+      const data = await readFile();
+      if (!data) {
+        console.log("no data in idb");
+        dispatch({ status: "idle" });
+        return true;
+      }
+      dispatch({ status: "loading_idb" });
+      console.log("running createDb");
+      await createDb(data);
+      return false;
+    }
+  );
 
   const createDb = async (dbData: any) => {
     if (!dbData) {
-      throw Error("dbData is null or undefined");
+      console.log("dbData is null or undefined");
+      return;
     }
     if (!sqlite3) {
-      throw Error("sqlite3 is not ready");
+      console.log("sqlite3 is not ready");
+      return;
     }
 
     dispatch({ status: "creating db" });
@@ -62,6 +84,7 @@ export default function useDb() {
     const reader = body.getReader();
     reader.read().then(function processText({ done, value }) {
       if (done) {
+        createFile(data);
         dispatch({ status: "done downloading", progress: 100 });
         createDb(data);
         return;
@@ -84,6 +107,6 @@ export default function useDb() {
   return {
     ...state,
     handleStart,
-    canStart: sqlite3 && !state.db && state.status === "idle",
+    canStart: sqlite3 && !state.db && state.status === "idle" && dbNotSaved,
   };
 }
