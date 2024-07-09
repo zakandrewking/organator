@@ -1,30 +1,29 @@
 "use client";
+
 import { scaleLinear } from 'd3-scale';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import * as R from 'remeda';
 
 import { Button } from '@/components/ui/button';
 import Container from '@/components/ui/container';
 import { Stack } from '@/components/ui/stack';
 import { H2, H3 } from '@/components/ui/typography';
 import VirtualList from '@/components/VirtualList';
-import useQuery from '@/hooks/useQuery';
 import useQueryCached from '@/hooks/useQueryCached';
 
-const TICK_LENGTH = 6;
+const tickLength = 6;
 const pixelsPerTick = 100;
+const itemLength = 771;
 
-function Item(i: number) {
-  // const itemResult = useQuery(`select * from sequences limit 1 offset ${i}`);
-  // console.log(itemResult);
-  const seq = "abc";
+function Item(sequence: string | undefined) {
   return (
     <>
-      <text fill="hsl(var(--foreground))">{seq}</text>
+      <text fill="hsl(var(--foreground))" className="font-mono">
+        {sequence}
+      </text>
       <g transform="translate(0, 20)">
         <path
-          d={["M", 0, 0, "L", 200, 0].join(" ")}
+          d={["M", 0, 0, "L", itemLength, 0].join(" ")}
           stroke="hsl(var(--foreground))"
         />
       </g>
@@ -33,11 +32,6 @@ function Item(i: number) {
 }
 
 export default function Browse() {
-  const i = 1;
-  const itemResult = useQuery(`select * from sequences limit 1 offset ${i}`);
-  const seqx = R.pathOr(itemResult, ["seq"], "");
-  console.log(itemResult, seqx);
-
   // const chromosomesResult = useQueryCached(
   //   "/chromosomes",
   //   "select * from chromosomes"
@@ -103,10 +97,10 @@ export default function Browse() {
     // handle reset logic here
   };
 
-  const loadItem = (page: number, size: number) => {
-    // has to be async because sqlite does not haver a sync api
-    console.log("load more items", page, size);
-  };
+  const getQuery = (index: number, count: number): [string, string] => [
+    `/q?i=${index}&s=${count}`,
+    `select * from sequences limit ${count} offset ${index}`,
+  ];
 
   return (
     <Container>
@@ -129,7 +123,13 @@ export default function Browse() {
           Reset
         </Button>
       </Stack>
-      <VirtualList count={100} itemWidth={200} itemComponent={Item} />
+      <VirtualList
+        count={100}
+        itemWidth={itemLength}
+        itemComponent={Item}
+        getQuery={getQuery}
+        rowKey="seq"
+      />
       <svg className="w-full">
         <g transform={`translate(0, 20)`} width="100%"></g>
         <g transform={`translate(5, 40)`}>
@@ -148,7 +148,7 @@ export default function Browse() {
             />
             {ticks.map(({ value, xOffset }) => (
               <g key={value} transform={`translate(${xOffset}, 0)`}>
-                <line y2={TICK_LENGTH} stroke="currentColor" />
+                <line y2={tickLength} stroke="currentColor" />
                 <text
                   key={value}
                   style={{
