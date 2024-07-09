@@ -1,17 +1,21 @@
-import { mutate } from 'swr';
-import useSWRImmutable from 'swr/immutable';
+import { useState } from 'react';
 
+import { useAsyncEffect } from './useAsyncEffect';
 import useDb from './useDb';
 
+/**
+ * Query SQLite database and do not cache the result. Avoids unnecessary
+ * memory usage for cases when async results are OK.
+ */
 export default function useQuery(
-  name: string | null,
   sql: string,
   transform?: (row: any) => any
 ): any {
   const { db } = useDb();
+  const [result, setResult] = useState<any>(null);
 
-  const { data } = useSWRImmutable(name, () => {
-    setTimeout(() => {
+  useAsyncEffect(
+    async () => {
       db.exec({
         sql,
         rowMode: "object",
@@ -19,12 +23,13 @@ export default function useQuery(
           if (transform) {
             row = transform(row);
           }
-          mutate(name, (prev: any) => (prev ? [...prev, row] : [row]), {
-            revalidate: false,
-          });
+          setResult(row);
         },
       });
-    });
-  });
-  return data;
+    },
+    async () => {},
+    [setResult, db]
+  );
+
+  return result;
 }

@@ -1,8 +1,8 @@
 "use client";
-
 import { scaleLinear } from 'd3-scale';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import * as R from 'remeda';
 
 import { Button } from '@/components/ui/button';
 import Container from '@/components/ui/container';
@@ -10,12 +10,60 @@ import { Stack } from '@/components/ui/stack';
 import { H2, H3 } from '@/components/ui/typography';
 import VirtualList from '@/components/VirtualList';
 import useQuery from '@/hooks/useQuery';
+import useQueryCached from '@/hooks/useQueryCached';
 
 const TICK_LENGTH = 6;
 const pixelsPerTick = 100;
 
+function Item(i: number) {
+  // const itemResult = useQuery(`select * from sequences limit 1 offset ${i}`);
+  // console.log(itemResult);
+  const seq = "abc";
+  return (
+    <>
+      <text fill="hsl(var(--foreground))">{seq}</text>
+      <g transform="translate(0, 20)">
+        <path
+          d={["M", 0, 0, "L", 200, 0].join(" ")}
+          stroke="hsl(var(--foreground))"
+        />
+      </g>
+    </>
+  );
+}
+
 export default function Browse() {
-  const sequences = useQuery("/browse", "select * from sequences limit 1");
+  const i = 1;
+  const itemResult = useQuery(`select * from sequences limit 1 offset ${i}`);
+  const seqx = R.pathOr(itemResult, ["seq"], "");
+  console.log(itemResult, seqx);
+
+  // const chromosomesResult = useQueryCached(
+  //   "/chromosomes",
+  //   "select * from chromosomes"
+  // );
+
+  const [seqId, setSeqId] = useState<string | null>(null);
+  const sequenceCountResult = useQueryCached(
+    seqId ? `/sequenceCount?seqId=${seqId}` : null,
+    "select count(*) as count from sequences"
+  );
+  const sequenceCount = sequenceCountResult
+    ? (sequenceCountResult[0].count as number)
+    : null;
+
+  const sequences = useQueryCached(
+    "/browse",
+    "select * from sequences limit 1"
+  );
+
+  // // select the first chromosome
+  // useEffect(() => {
+  //   const firstSeqId = chromosomesResult && chromosomesResult[0].seqId;
+  //   if (firstSeqId && seqId === null) {
+  //     setSeqId(firstSeqId);
+  //   }
+  // }, [chromosomesResult, seqId]);
 
   const seq = !sequences ? "" : sequences.map((seq: any) => seq.seq).join("");
 
@@ -55,17 +103,10 @@ export default function Browse() {
     // handle reset logic here
   };
 
-  const getItem = (i: number) => (
-    <>
-      <text fill="hsl(var(--foreground))">AppendedSvgNode {i + 1}</text>
-      <g transform="translate(0, 20)">
-        <path
-          d={["M", 0, 0, "L", 200, 0].join(" ")}
-          stroke="hsl(var(--foreground))"
-        />
-      </g>
-    </>
-  );
+  const loadItem = (page: number, size: number) => {
+    // has to be async because sqlite does not haver a sync api
+    console.log("load more items", page, size);
+  };
 
   return (
     <Container>
@@ -88,7 +129,7 @@ export default function Browse() {
           Reset
         </Button>
       </Stack>
-      <VirtualList count={150} itemWidth={200} getItem={getItem} />
+      <VirtualList count={100} itemWidth={200} itemComponent={Item} />
       <svg className="w-full">
         <g transform={`translate(0, 20)`} width="100%"></g>
         <g transform={`translate(5, 40)`}>
@@ -105,7 +146,6 @@ export default function Browse() {
               d={["M", range[0], 0, "L", range[1], 0].join(" ")}
               stroke="hsl(var(--foreground))"
             />
-            {/* </InfiniteLoader> */}
             {ticks.map(({ value, xOffset }) => (
               <g key={value} transform={`translate(${xOffset}, 0)`}>
                 <line y2={TICK_LENGTH} stroke="currentColor" />

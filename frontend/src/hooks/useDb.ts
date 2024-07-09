@@ -23,7 +23,7 @@ export default function useDb() {
         return true;
       }
       dispatch({ status: "loading_idb" });
-      console.log("running createDb");
+      console.log("Loading SQLite DB from IndexedDB");
       await createDb(data);
       return false;
     }

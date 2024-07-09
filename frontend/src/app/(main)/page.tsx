@@ -12,7 +12,7 @@ import Container from '@/components/ui/container';
 import { List, ListItem, ListItemContent } from '@/components/ui/list';
 import { Stack } from '@/components/ui/stack';
 import { H3, H4 } from '@/components/ui/typography';
-import useQuery from '@/hooks/useQuery';
+import useQueryCached from '@/hooks/useQueryCached';
 import { DbStoreContext } from '@/stores/DbStore';
 
 export default function Main() {
@@ -21,7 +21,7 @@ export default function Main() {
 
   const page = Number(searchParams.get("page")) || 1;
 
-  const first10Genes = useQuery(
+  const first10Genes = useQueryCached(
     `/first10Genes?page=${page}`,
     `select * from features limit 10 offset ${(page - 1) * 10}`,
     (row) => {
@@ -30,7 +30,7 @@ export default function Main() {
     }
   );
 
-  const geneCount = useQuery(
+  const geneCount = useQueryCached(
     "/geneCount",
     "select count(*) as count from features"
   );

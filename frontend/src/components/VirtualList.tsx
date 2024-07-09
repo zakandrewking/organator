@@ -7,11 +7,11 @@ import useScrollLeft from '@/hooks/useScrollLeft';
 export default function VirtualSvgList({
   count,
   itemWidth,
-  getItem,
+  itemComponent,
 }: {
   count: number;
   itemWidth: number;
-  getItem: (i: number) => ReactNode;
+  itemComponent: (i: number) => ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const scrollLeft = useScrollLeft(ref);
@@ -35,7 +35,7 @@ export default function VirtualSvgList({
             }, 20)`}
             key={i}
           >
-            {getItem(i + indexDisplacement)}
+            {itemComponent(i + indexDisplacement)}
           </g>
         ))}
       </svg>

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import Container from '@/components/ui/container';
 import { Stack } from '@/components/ui/stack';
 import { H3, H4 } from '@/components/ui/typography';
-import useQuery from '@/hooks/useQuery';
+import useQueryCached from '@/hooks/useQueryCached';
 
 const maxRows = 1000;
 const rowLen = 80;
@@ -15,7 +15,7 @@ const rowLen = 80;
 export default function Gene() {
   const searchParams = useSearchParams();
 
-  const geneRows = useQuery(
+  const geneRows = useQueryCached(
     `/gene?id=${searchParams.get("id")}`,
     `select * from features where id = '${searchParams.get("id")}'`,
     (row: any) => {
@@ -25,7 +25,7 @@ export default function Gene() {
   );
   const gene = geneRows && geneRows[0];
 
-  const sequenceRaw = useQuery(
+  const sequenceRaw = useQueryCached(
     gene && `/sequence?id=${searchParams.get("id")}`,
     `select * from sequences
      where seqid = '${gene && gene.seqid}' and

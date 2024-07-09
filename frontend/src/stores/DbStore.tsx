@@ -15,9 +15,6 @@ export const dbStoreInitialState = {
 };
 
 function reducer(state: DbStore, action: Partial<DbStore>) {
-  if (action.status && state.status != action.status) {
-    console.log("status", action.status);
-  }
   const newState = {
     ...state,
     ...action,
