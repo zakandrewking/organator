@@ -8,13 +8,13 @@ import useDb from './useDb';
  * need synchronous data the second time, e.g. for scroll restoration.
  */
 export default function useQueryCached(
-  name: string | null,
+  key: string | null,
   sql: string,
   transform?: (row: any) => any
 ): any {
   const { db } = useDb();
 
-  const { data } = useSWRImmutable<any>(name, () => {
+  const { data } = useSWRImmutable<any>(key, () => {
     // timeout for SWR hack
     setTimeout(() => {
       db.exec({
@@ -24,7 +24,7 @@ export default function useQueryCached(
           if (transform) {
             row = transform(row);
           }
-          mutate(name, (prev: any) => (prev ? [...prev, row] : [row]), {
+          mutate(key, (prev: any) => (prev ? [...prev, row] : [row]), {
             revalidate: false,
           });
         },

@@ -15,7 +15,7 @@ export default function VirtualSvgList({
   count: number;
   itemWidth: number;
   itemComponent: (data: string | undefined) => ReactNode;
-  getQuery: (index: number, count: number) => [string, string];
+  getQuery: (index: number, count: number) => [string | null, string];
   rowKey: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
