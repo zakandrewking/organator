@@ -25,6 +25,8 @@
 //           }
 //           // TODO not sure this is really possible without SWR b/c we need to append to the array
 //           // ... when does useState get re-initialized?
+//           // what if we used useMemo with the length of the result array as the
+//           // dependency?
 //           setResult(row);
 //         },
 //       });

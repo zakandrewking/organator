@@ -23,6 +23,12 @@ const pixelsPerTick = 100;
 const itemLength = 771;
 const seqLength = 80;
 
+interface Chromosome {
+  refSeqId: string;
+  chromosomeNumber: number;
+  seqid: string;
+}
+
 function Item(sequence: string | undefined) {
   return (
     <>
@@ -40,27 +46,34 @@ function Item(sequence: string | undefined) {
 }
 
 export default function Browse() {
-  const seqIdsResult = useQueryCached(
+  const chromosomeResult = useQueryCached(
     "/features?unique=seqid",
-    "select distinct seqid from features"
-  ) as { seqid: string }[] | undefined;
+    "select seqid, attributes from features group by seqid having min(rowid) order by rowid",
+    (row: any) => {
+      row["refSeqId"] = row["seqid"];
+      row["chromosomeNumber"] = Number(
+        JSON.parse(row["attributes"])["chromosome"]
+      );
+      delete row["attributes"];
+      return row;
+    }
+  ) as Chromosome[] | undefined;
 
-  const [seqId, setSeqId] = useState<string | undefined>();
+  const [chromosome, setChromosome] = useState<Chromosome | undefined>();
 
   const sequenceCountResult = useQueryCached(
-    seqId ? `/sequenceCount?seqId=${seqId}` : null,
-    `select count(*) as count from sequences where seqid = '${seqId}'`
+    chromosome ? `/sequenceCount?seqId=${chromosome.seqid}` : null,
+    `select count(*) as count from sequences where seqid = '${chromosome?.seqid}'`
   ) as { count: number }[] | undefined;
   const sequenceCount = R.pathOr(sequenceCountResult, [0, "count"], 0);
 
   // select the first chromosome
   useEffect(() => {
-    const firstSeqId = R.pathOr(seqIdsResult, [0, "seqid"], "");
-    console.log({ firstSeqId, seqId, seqIdsResult });
-    if (firstSeqId !== "" && seqId === undefined) {
-      setSeqId(firstSeqId);
+    const firstChromosome = chromosomeResult?.[0];
+    if (firstChromosome && !chromosome) {
+      setChromosome(firstChromosome);
     }
-  }, [seqId, seqIdsResult]);
+  }, [chromosome, chromosomeResult]);
 
   // const xScale = scaleLinear().domain([0, seq.length]).range([0, 1000]);
 
@@ -104,20 +117,22 @@ export default function Browse() {
       </Button>
       <H2>Browse</H2>
 
-      <div>Chromosome Number: TODO</div>
+      <div>Chromosome Number: {chromosome?.chromosomeNumber}</div>
       <div>
         Chromosome RefSeq ID:{" "}
         <Button variant="link" asChild className="p-1">
           {/* TODO ExternalLink component */}
           <Link
-            href={`https://www.ncbi.nlm.nih.gov/nuccore/${seqId}/`}
+            href={`https://www.ncbi.nlm.nih.gov/nuccore/${chromosome?.refSeqId}/`}
             target="_blank"
           >
-            {seqId}
+            {chromosome?.refSeqId}
           </Link>
         </Button>
       </div>
-      <div className="mb-6">Length: {(sequenceCount * seqLength) / 1e6} Mb</div>
+      <div className="mb-6">
+        Length: {((sequenceCount * seqLength) / 1e6).toFixed(3)} Mb
+      </div>
 
       <Stack gap={2} direction="row" className="mb-6">
         <Button size="sm" onClick={handleZoomIn}>
