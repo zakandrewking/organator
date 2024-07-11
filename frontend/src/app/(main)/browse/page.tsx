@@ -2,7 +2,7 @@
 
 import { scaleLinear } from 'd3-scale';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as R from 'remeda';
 
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,9 @@ import VirtualList from '@/components/VirtualList';
 import useQueryCached from '@/hooks/useQueryCached';
 
 const tickLength = 6;
-const pixelsPerTick = 100;
-const itemLength = 771;
 const seqLength = 80;
+const pxPerBp = 9.65; // at zoom 1
+const itemLength = seqLength * pxPerBp;
 
 interface Chromosome {
   refSeqId: string;
@@ -26,23 +26,11 @@ interface Chromosome {
   seqid: string;
 }
 
-function Item(sequence: string | undefined) {
-  return (
-    <>
-      <text fill="hsl(var(--foreground))" className="font-mono select-none">
-        {sequence}
-      </text>
-      <g transform="translate(0, 20)">
-        <path
-          d={["M", 0, 0, "L", itemLength, 0].join(" ")}
-          stroke="hsl(var(--foreground))"
-        />
-      </g>
-    </>
-  );
-}
-
 export default function Browse() {
+  const [scale, setScale] = useState(1);
+  const [bpOffset, setBpOffset] = useState(0);
+  const [bpPerTick, setBpPerTick] = useState(100);
+
   const chromosomeResult = useQueryCached(
     "/features?unique=seqid",
     "select seqid, attributes from features group by seqid having min(rowid) order by rowid",
@@ -73,25 +61,44 @@ export default function Browse() {
   }, [chromosome, chromosomeResult]);
 
   const handleZoomIn = () => {
-    // handle zoom in logic here
+    setScale((prev) => scale / 2);
   };
 
   const handleZoomOut = () => {
-    // handle zoom out logic here
-  };
-
-  const handleRandom = () => {
-    // handle random logic here
+    setScale((prev) => scale * 2);
   };
 
   const handleReset = () => {
-    // handle reset logic here
+    setScale(1);
   };
 
   const getQuery = (index: number, count: number): [string | null, string] => [
     chromosome ? `/q?i=${index}&s=${count}&seqid=${chromosome?.seqid}` : null,
     `select * from sequences where seqid='${chromosome?.seqid}' limit ${count} offset ${index}`,
   ];
+
+  const Item = useCallback(
+    (sequence: string | undefined) => {
+      return (
+        <>
+          <text
+            fill="hsl(var(--foreground))"
+            className="font-mono select-none"
+            textLength={itemLength * scale}
+          >
+            {sequence}
+          </text>
+          <g transform="translate(0, 20)">
+            <path
+              d={["M", 0, 0, "L", itemLength * scale, 0].join(" ")}
+              stroke="hsl(var(--foreground))"
+            />
+          </g>
+        </>
+      );
+    },
+    [scale]
+  );
 
   return (
     <Container>
@@ -142,16 +149,13 @@ export default function Browse() {
         <Button size="sm" onClick={handleZoomOut}>
           Zoom Out
         </Button>
-        <Button size="sm" onClick={handleRandom}>
-          Random
-        </Button>
         <Button size="sm" onClick={handleReset}>
           Reset
         </Button>
       </Stack>
       <VirtualList
         count={sequenceCount}
-        itemWidth={itemLength}
+        itemWidth={itemLength * scale}
         itemComponent={Item}
         getQuery={getQuery}
         rowKey="seq"
