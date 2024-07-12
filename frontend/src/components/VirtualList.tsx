@@ -1,15 +1,10 @@
 import "./VirtualList.css";
-import { ReactNode, RefObject, useRef } from "react";
+import { forwardRef, ReactNode, useImperativeHandle, useRef } from "react";
 
 import useContainerDimensions from "@/hooks/useContainerDimensions";
 import useScrollLeft from "@/hooks/useScrollLeft";
 
-export default function VirtualSvgList({
-  count,
-  itemWidth,
-  Item,
-  ItemLoader,
-}: {
+interface VirtualListProps {
   count: number;
   itemWidth: number;
   Item: (data: any | undefined) => ReactNode;
@@ -22,37 +17,57 @@ export default function VirtualSvgList({
     count: number;
     children: (items: any) => ReactNode;
   }) => ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const scrollLeft = useScrollLeft(ref);
-  const { width } = useContainerDimensions(ref);
-
-  // display an extra component on each side to avoid flickering
-  const renderCount = Math.ceil(width / itemWidth + 3);
-  const indexDisplacement = Math.max(
-    Math.floor((scrollLeft ?? 0) / itemWidth) - 1,
-    0
-  );
-  const firstItemDisplacement = indexDisplacement * itemWidth;
-
-  return (
-    <div className="w-full overflow-auto always-scrollbar" ref={ref}>
-      <ItemLoader index={indexDisplacement} count={renderCount}>
-        {(items) => (
-          <svg width={count * itemWidth} height="85px">
-            {Array.from({ length: renderCount }).map((_, i) => (
-              <g
-                transform={`translate(${
-                  i * itemWidth + firstItemDisplacement
-                }, 20)`}
-                key={i}
-              >
-                {Item({ data: items[i] })}
-              </g>
-            ))}
-          </svg>
-        )}
-      </ItemLoader>
-    </div>
-  );
 }
+
+export interface VirtualListRef {
+  scrollToItem: (index: number) => void;
+}
+
+const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
+  ({ count, itemWidth, Item, ItemLoader }, ref) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const scrollLeft = useScrollLeft(containerRef);
+    const { width } = useContainerDimensions(containerRef);
+
+    useImperativeHandle(ref, () => ({
+      scrollToItem: (index: number) => {
+        if (containerRef.current) {
+          containerRef.current.scrollLeft = index * itemWidth;
+        }
+      },
+    }));
+
+    // display an extra component on each side to avoid flickering
+    const renderCount = Math.ceil(width / itemWidth + 3);
+    const indexDisplacement = Math.max(
+      Math.floor((scrollLeft ?? 0) / itemWidth) - 1,
+      0
+    );
+    const firstItemDisplacement = indexDisplacement * itemWidth;
+
+    return (
+      <div className="w-full overflow-auto always-scrollbar" ref={containerRef}>
+        <ItemLoader index={indexDisplacement} count={renderCount}>
+          {(items) => (
+            <svg width={count * itemWidth} height="85px">
+              {Array.from({ length: renderCount }).map((_, i) => (
+                <g
+                  transform={`translate(${
+                    i * itemWidth + firstItemDisplacement
+                  }, 20)`}
+                  key={i}
+                >
+                  {Item({ data: items[i] })}
+                </g>
+              ))}
+            </svg>
+          )}
+        </ItemLoader>
+      </div>
+    );
+  }
+);
+
+VirtualList.displayName = "VirtualList";
+
+export default VirtualList;

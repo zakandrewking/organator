@@ -1,22 +1,19 @@
 "use client";
 
-import Link from "next/link";
-import React, { ReactNode, RefObject, useEffect, useState } from "react";
-import * as R from "remeda";
+import Link from 'next/link';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import * as R from 'remeda';
 
-import { Button } from "@/components/ui/button";
-import Container from "@/components/ui/container";
+import { Button } from '@/components/ui/button';
+import Container from '@/components/ui/container';
+import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Stack } from "@/components/ui/stack";
-import { H2 } from "@/components/ui/typography";
-import VirtualList from "@/components/VirtualList";
-import useQueryCached from "@/hooks/useQueryCached";
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import { Stack } from '@/components/ui/stack';
+import { H2 } from '@/components/ui/typography';
+import VirtualList, { VirtualListRef } from '@/components/VirtualList';
+import useQueryCached from '@/hooks/useQueryCached';
 
 const tickLength = 6;
 const seqLength = 80;
@@ -29,25 +26,47 @@ interface Chromosome {
   seqid: string;
 }
 
+interface Sequence {
+  seq: string;
+  seqid: string;
+  start: number;
+}
+
+interface Feature {
+  attributes: string;
+  bin: number;
+  end: number;
+  extra: string;
+  featuretype: string;
+  frame: string;
+  id: string;
+  score: string;
+  seqid: string;
+  source: string;
+  start: number;
+  strand: string;
+}
+
 const useDataHook = (index: number, count: number, chromosome?: Chromosome) => {
   const data = useQueryCached(
     chromosome ? `/q?i=${index}&s=${count}&seqid=${chromosome?.seqid}` : null,
     `select * from sequences where seqid='${chromosome?.seqid}' limit ${count} offset ${index}`
-  );
+  ) as Sequence[] | undefined;
   const features = useQueryCached(
     chromosome
       ? `/features?i=${index}&s=${count}&seqid=${chromosome.seqid}`
       : null,
-    `select * from features where seqid='${chromosome?.seqid}' and start < ${
-      index * seqLength + count
-    } and end > ${index * seqLength}`
-  );
+    `select * from features where seqid='${chromosome?.seqid}' and start <= ${
+      (index + count) * seqLength
+    } and end >= ${index * seqLength}`
+  ) as Feature[] | undefined;
   const items = data
-    ? data.map((d: any) => ({
-        sequence: d.seq,
-        features: features?.filter(
-          (f: any) => f.start < d.start + seqLength && f.end > d.start
-        ),
+    ? data.map((s) => ({
+        sequence: s,
+        features:
+          features?.filter(
+            (f: any) => f.start < s.start + seqLength && f.end > s.start
+          ) ?? [],
       }))
     : [];
   return items;
@@ -57,6 +76,10 @@ export default function Browse() {
   const [scale, setScale] = useState(1);
   const [bpOffset, setBpOffset] = useState(0);
   const [bpPerTick, setBpPerTick] = useState(100);
+
+  // location
+  const [location, setLocation] = useState("");
+  const virtualListRef = useRef<VirtualListRef>(null);
 
   const chromosomeResult = useQueryCached(
     "/features?unique=seqid",
@@ -87,6 +110,10 @@ export default function Browse() {
     }
   }, [chromosome, chromosomeResult]);
 
+  // --------
+  // Handlers
+  // --------
+
   const handleZoomIn = () => {
     setScale((prev) => scale / 2);
   };
@@ -97,6 +124,23 @@ export default function Browse() {
 
   const handleReset = () => {
     setScale(1);
+  };
+
+  const handleScrollToLocation = () => {
+    const locationNumber = parseInt(location, 10);
+    if (
+      isNaN(locationNumber) ||
+      locationNumber < 0 ||
+      locationNumber >= sequenceCount * seqLength
+    ) {
+      // TODO switch to a toast
+      alert("Please enter a valid location within the chromosome range.");
+      return;
+    }
+    const index = locationNumber / seqLength;
+    if (virtualListRef.current) {
+      virtualListRef.current.scrollToItem(index);
+    }
   };
 
   const ItemLoader = ({
@@ -116,8 +160,8 @@ export default function Browse() {
     data,
   }: {
     data?: {
-      sequence: string | undefined;
-      features: any;
+      sequence: Sequence;
+      features: Feature[];
     };
   }) => (
     <>
@@ -126,7 +170,7 @@ export default function Browse() {
         className="font-mono select-none"
         textLength={itemLength * scale}
       >
-        {data?.sequence}
+        {data?.sequence.seq}
       </text>
       <g transform="translate(0, 20)">
         <path
@@ -193,7 +237,29 @@ export default function Browse() {
           Reset
         </Button>
       </Stack>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleScrollToLocation();
+        }}
+      >
+        <Stack gap={2} direction="row" className="mb-6">
+          <Input
+            type="number"
+            placeholder="Enter location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="w-40"
+          />
+          <Button size="sm" type="submit">
+            Go to Location
+          </Button>
+        </Stack>
+      </form>
+
       <VirtualList
+        ref={virtualListRef}
         count={sequenceCount}
         itemWidth={itemLength * scale}
         Item={Item}
