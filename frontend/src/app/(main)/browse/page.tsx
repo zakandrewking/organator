@@ -244,7 +244,7 @@ export default function Browse() {
       <Button asChild>
         <Link href="/">{"<"} Genes</Link>
       </Button>
-      <H2>Browse</H2>
+      <H2>Plasmodium falciparum (Malaria) Genome</H2>
 
       <Select
         value={chromosome?.seqid}

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useContext, useState } from 'react';
+import { mutate } from 'swr';
 
 import { Button } from '@/components/ui/button';
 import Container from '@/components/ui/container';
@@ -24,16 +26,20 @@ export default function Downloads() {
       console.error(e);
       return;
     }
+    mutate("/saved-db", true);
     dispatch({ ...dbStoreInitialState, status: "idle" });
     router.push("/");
   };
 
   return (
     <Container>
-      <Stack direction="col" alignItems="start">
-        Database loaded{" "}
+      <Button asChild>
+        <Link href="/">{"<"} Genes</Link>
+      </Button>
+      <Stack direction="col" alignItems="start" className="mt-8">
+        The database is saved to your browser (71.1 Mb){" "}
         <Button onClick={handleDelete} disabled={isDeleting}>
-          Delete
+          Delete Database
         </Button>
       </Stack>
     </Container>

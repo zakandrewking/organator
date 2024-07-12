@@ -104,9 +104,19 @@ export default function useDb() {
     });
   };
 
+  const canStart =
+    sqlite3 && !state.db && state.status === "idle" && dbNotSaved;
+
+  console.log({
+    canStart,
+    sqlite3,
+    dbNotSaved,
+    status: state.status,
+  });
+
   return {
     ...state,
     handleStart,
-    canStart: sqlite3 && !state.db && state.status === "idle" && dbNotSaved,
+    canStart,
   };
 }

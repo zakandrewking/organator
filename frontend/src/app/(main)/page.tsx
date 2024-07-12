@@ -40,7 +40,7 @@ export default function Main() {
       <H3 gutterBottom={false}>Plasmodium falciparum (Malaria) Genes</H3>
       <Stack direction="row" gap={2}>
         <Button asChild>
-          <Link href="/browse">Browse</Link>
+          <Link href="/browse">Genome Browser</Link>
         </Button>
         <Button asChild>
           <Link href="/downloads">Downloads</Link>

@@ -92,9 +92,5 @@ export default function useIndexedDb(fileName: string) {
     };
   };
 
-  const hasFile = async () => {
-    return true;
-  };
-
-  return { readFile, createFile, deleteFile, hasFile, idb };
+  return { readFile, createFile, deleteFile, idb };
 }

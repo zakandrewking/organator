@@ -13,8 +13,8 @@ export default function DownloadDb() {
   return (
     <Container gap={2}>
       <H3>
-        This will load a 70MB sqlite database into memory & local storage -- use
-        with caution!
+        This will load a 71.1MB sqlite database into memory & local storage --
+        use with caution!
       </H3>
       <div>
         <Button onClick={handleStart} disabled={!canStart}>
