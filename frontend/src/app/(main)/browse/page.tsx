@@ -18,7 +18,7 @@ import useQueryCached from '@/hooks/useQueryCached';
 const tickLength = 6;
 const seqLength = 80;
 const pxPerBp = 9.65; // at zoom 1
-const itemLength = seqLength * pxPerBp;
+const itemLength = seqLength * pxPerBp; // at zoom 1
 
 interface Chromosome {
   refSeqId: string;
@@ -47,11 +47,21 @@ interface Feature {
   strand: string;
 }
 
+interface FeatureWithIndex extends Feature {
+  index: number;
+}
+
+/**
+ * Get sequence and feature data in chunks from the database
+ */
 const useDataHook = (index: number, count: number, chromosome?: Chromosome) => {
+  // get sequences in this chunk
   const data = useQueryCached(
     chromosome ? `/q?i=${index}&s=${count}&seqid=${chromosome?.seqid}` : null,
     `select * from sequences where seqid='${chromosome?.seqid}' limit ${count} offset ${index}`
   ) as Sequence[] | undefined;
+
+  // get all features in this chunk
   const features = useQueryCached(
     chromosome
       ? `/features?i=${index}&s=${count}&seqid=${chromosome.seqid}`
@@ -60,11 +70,19 @@ const useDataHook = (index: number, count: number, chromosome?: Chromosome) => {
       (index + count) * seqLength
     } and end >= ${index * seqLength}`
   ) as Feature[] | undefined;
+
+  // the vertical index of the features should be consistent, so we need to set
+  // it up here
+  const featuresWithIndex = features?.map((f, i) => ({
+    ...f,
+    index: i,
+  }));
+
   const items = data
     ? data.map((s) => ({
         sequence: s,
         features:
-          features?.filter(
+          featuresWithIndex?.filter(
             (f: any) => f.start < s.start + seqLength && f.end > s.start
           ) ?? [],
       }))
@@ -115,16 +133,22 @@ export default function Browse() {
   // --------
 
   const handleZoomIn = () => {
-    setScale((prev) => scale / 2);
+    setScale((prev) => scale * 2);
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => scale * 2);
+    setScale((prev) => scale / 2);
   };
 
   const handleReset = () => {
     setScale(1);
   };
+
+  // ---------------
+  // Computed values
+  // ---------------
+
+  const itemWidthScaled = itemLength * scale;
 
   const handleScrollToLocation = () => {
     const locationNumber = parseInt(location, 10);
@@ -156,30 +180,61 @@ export default function Browse() {
     return <>{children(items)}</>;
   };
 
+  /**
+   * Draw the sequence and features
+   */
   const Item = ({
     data,
   }: {
     data?: {
       sequence: Sequence;
-      features: Feature[];
+      features: FeatureWithIndex[];
     };
   }) => (
     <>
       <text
         fill="hsl(var(--foreground))"
         className="font-mono select-none"
-        textLength={itemLength * scale}
+        textLength={itemWidthScaled}
       >
         {data?.sequence.seq}
       </text>
       <g transform="translate(0, 20)">
         <path
-          d={["M", 0, 0, "L", itemLength * scale, 0].join(" ")}
+          d={["M", 0, 0, "L", itemWidthScaled, 0].join(" ")}
           stroke="hsl(var(--foreground))"
         />
       </g>
-      <g transform="translate(0, 40)" fill="hsl(var(--foreground))">
-        <text>{data?.features?.length}</text>
+      <g transform="translate(0, 30)">
+        {data?.features.map((f) => {
+          const startPx =
+            f.start < data.sequence.start
+              ? 0
+              : (f.start - data.sequence.start - 1) * pxPerBp * scale;
+          const endPx =
+            f.end > data.sequence.start + seqLength
+              ? itemWidthScaled
+              : (f.end - data.sequence.start) * pxPerBp * scale;
+          const widthPx = endPx - startPx;
+          return (
+            <g key={f.id} transform={`translate(${startPx}, ${20 * f.index})`}>
+              <rect
+                width={widthPx}
+                height="15"
+                fill="hsl(var(--foreground))"
+                opacity="0.5"
+              />
+              <text
+                x={0}
+                y={10}
+                fill="hsl(var(--background))"
+                className="font-mono select-none text-xs"
+              >
+                {f.id}
+              </text>
+            </g>
+          );
+        })}
       </g>
     </>
   );
@@ -261,7 +316,8 @@ export default function Browse() {
       <VirtualList
         ref={virtualListRef}
         count={sequenceCount}
-        itemWidth={itemLength * scale}
+        height={200}
+        itemWidth={itemWidthScaled}
         Item={Item}
         ItemLoader={ItemLoader}
       />

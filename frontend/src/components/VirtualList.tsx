@@ -1,12 +1,13 @@
-import "./VirtualList.css";
-import { forwardRef, ReactNode, useImperativeHandle, useRef } from "react";
+import './VirtualList.css';
+import { forwardRef, ReactNode, useImperativeHandle, useRef } from 'react';
 
-import useContainerDimensions from "@/hooks/useContainerDimensions";
-import useScrollLeft from "@/hooks/useScrollLeft";
+import useContainerDimensions from '@/hooks/useContainerDimensions';
+import useScrollLeft from '@/hooks/useScrollLeft';
 
 interface VirtualListProps {
   count: number;
   itemWidth: number;
+  height: number;
   Item: (data: any | undefined) => ReactNode;
   ItemLoader: ({
     index,
@@ -24,7 +25,7 @@ export interface VirtualListRef {
 }
 
 const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
-  ({ count, itemWidth, Item, ItemLoader }, ref) => {
+  ({ count, itemWidth, height, Item, ItemLoader }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollLeft = useScrollLeft(containerRef);
     const { width } = useContainerDimensions(containerRef);
@@ -49,7 +50,7 @@ const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
       <div className="w-full overflow-auto always-scrollbar" ref={containerRef}>
         <ItemLoader index={indexDisplacement} count={renderCount}>
           {(items) => (
-            <svg width={count * itemWidth} height="85px">
+            <svg width={count * itemWidth} height={`${height}px`}>
               {Array.from({ length: renderCount }).map((_, i) => (
                 <g
                   transform={`translate(${
