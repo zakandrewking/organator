@@ -1,19 +1,27 @@
-import './VirtualList.css';
-import { ReactNode, useRef } from 'react';
+import "./VirtualList.css";
+import { ReactNode, RefObject, useRef } from "react";
 
-import useContainerDimensions from '@/hooks/useContainerDimensions';
-import useScrollLeft from '@/hooks/useScrollLeft';
+import useContainerDimensions from "@/hooks/useContainerDimensions";
+import useScrollLeft from "@/hooks/useScrollLeft";
 
 export default function VirtualSvgList({
   count,
   itemWidth,
-  itemComponent,
-  useDataHook,
+  Item,
+  ItemLoader,
 }: {
   count: number;
   itemWidth: number;
-  itemComponent: (data: any | undefined) => ReactNode;
-  useDataHook: (index: number, count: number) => any[];
+  Item: (data: any | undefined) => ReactNode;
+  ItemLoader: ({
+    index,
+    count,
+    children,
+  }: {
+    index: number;
+    count: number;
+    children: (items: any) => ReactNode;
+  }) => ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const scrollLeft = useScrollLeft(ref);
@@ -27,22 +35,24 @@ export default function VirtualSvgList({
   );
   const firstItemDisplacement = indexDisplacement * itemWidth;
 
-  const items = useDataHook(indexDisplacement, renderCount);
-
   return (
     <div className="w-full overflow-auto always-scrollbar" ref={ref}>
-      <svg width={count * itemWidth} height="85px">
-        {Array.from({ length: renderCount }).map((_, i) => (
-          <g
-            transform={`translate(${
-              i * itemWidth + firstItemDisplacement
-            }, 20)`}
-            key={i}
-          >
-            {itemComponent(items[i])}
-          </g>
-        ))}
-      </svg>
+      <ItemLoader index={indexDisplacement} count={renderCount}>
+        {(items) => (
+          <svg width={count * itemWidth} height="85px">
+            {Array.from({ length: renderCount }).map((_, i) => (
+              <g
+                transform={`translate(${
+                  i * itemWidth + firstItemDisplacement
+                }, 20)`}
+                key={i}
+              >
+                {Item({ data: items[i] })}
+              </g>
+            ))}
+          </svg>
+        )}
+      </ItemLoader>
     </div>
   );
 }

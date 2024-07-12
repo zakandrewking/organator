@@ -1,8 +1,7 @@
 "use client";
 
-import { scaleLinear } from "d3-scale";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { ReactNode, RefObject, useEffect, useState } from "react";
 import * as R from "remeda";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Stack } from "@/components/ui/stack";
-import { H2, H3 } from "@/components/ui/typography";
+import { H2 } from "@/components/ui/typography";
 import VirtualList from "@/components/VirtualList";
 import useQueryCached from "@/hooks/useQueryCached";
 
@@ -29,6 +28,30 @@ interface Chromosome {
   chromosomeNumber: number;
   seqid: string;
 }
+
+const useDataHook = (index: number, count: number, chromosome?: Chromosome) => {
+  const data = useQueryCached(
+    chromosome ? `/q?i=${index}&s=${count}&seqid=${chromosome?.seqid}` : null,
+    `select * from sequences where seqid='${chromosome?.seqid}' limit ${count} offset ${index}`
+  );
+  const features = useQueryCached(
+    chromosome
+      ? `/features?i=${index}&s=${count}&seqid=${chromosome.seqid}`
+      : null,
+    `select * from features where seqid='${chromosome?.seqid}' and start < ${
+      index * seqLength + count
+    } and end > ${index * seqLength}`
+  );
+  const items = data
+    ? data.map((d: any) => ({
+        sequence: d.seq,
+        features: features?.filter(
+          (f: any) => f.start < d.start + seqLength && f.end > d.start
+        ),
+      }))
+    : [];
+  return items;
+};
 
 export default function Browse() {
   const [scale, setScale] = useState(1);
@@ -76,67 +99,45 @@ export default function Browse() {
     setScale(1);
   };
 
-  const useDataHook = (index: number, count: number) => {
-    const data = useQueryCached(
-      chromosome ? `/q?i=${index}&s=${count}&seqid=${chromosome?.seqid}` : null,
-      `select * from sequences where seqid='${chromosome?.seqid}' limit ${count} offset ${index}`
-    );
-    const features = useQueryCached(
-      chromosome
-        ? `/features?i=${index}&s=${count}&seqid=${chromosome.seqid}`
-        : null,
-      `select * from features where seqid='${chromosome?.seqid}' and start < ${
-        index * seqLength + count
-      } and end > ${index * seqLength}`
-    );
-    const items = data
-      ? data.map((d: any) => ({
-          sequence: d.seq,
-          features: features?.filter(
-            (f: any) => f.start < d.start + seqLength && f.end > d.start
-          ),
-        }))
-      : [];
-    console.log(
-      `select * from features where seqid='${chromosome?.seqid}' and start < ${
-        index * seqLength + count
-      } and end > ${index * seqLength}`
-    );
-    console.log({ features, items, index, seqLength, count });
-    return items;
+  const ItemLoader = ({
+    index,
+    count,
+    children,
+  }: {
+    index: number;
+    count: number;
+    children: (items: any) => ReactNode;
+  }) => {
+    const items = useDataHook(index, count, chromosome);
+    return <>{children(items)}</>;
   };
 
-  const Item = useCallback(
-    (
-      data:
-        | {
-            sequence: string | undefined;
-            features: any;
-          }
-        | undefined
-    ) => {
-      return (
-        <>
-          <text
-            fill="hsl(var(--foreground))"
-            className="font-mono select-none"
-            textLength={itemLength * scale}
-          >
-            {data?.sequence}
-          </text>
-          <g transform="translate(0, 20)">
-            <path
-              d={["M", 0, 0, "L", itemLength * scale, 0].join(" ")}
-              stroke="hsl(var(--foreground))"
-            />
-          </g>
-          <g transform="translate(0, 40)" fill="hsl(var(--foreground))">
-            <text>{data?.features?.length}</text>
-          </g>
-        </>
-      );
-    },
-    [scale]
+  const Item = ({
+    data,
+  }: {
+    data?: {
+      sequence: string | undefined;
+      features: any;
+    };
+  }) => (
+    <>
+      <text
+        fill="hsl(var(--foreground))"
+        className="font-mono select-none"
+        textLength={itemLength * scale}
+      >
+        {data?.sequence}
+      </text>
+      <g transform="translate(0, 20)">
+        <path
+          d={["M", 0, 0, "L", itemLength * scale, 0].join(" ")}
+          stroke="hsl(var(--foreground))"
+        />
+      </g>
+      <g transform="translate(0, 40)" fill="hsl(var(--foreground))">
+        <text>{data?.features?.length}</text>
+      </g>
+    </>
   );
 
   return (
@@ -195,8 +196,8 @@ export default function Browse() {
       <VirtualList
         count={sequenceCount}
         itemWidth={itemLength * scale}
-        itemComponent={Item}
-        useDataHook={useDataHook}
+        Item={Item}
+        ItemLoader={ItemLoader}
       />
     </Container>
   );
