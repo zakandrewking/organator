@@ -1,19 +1,23 @@
 "use client";
 
-import { scaleLinear } from 'd3-scale';
-import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import * as R from 'remeda';
+import { scaleLinear } from "d3-scale";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import * as R from "remeda";
 
-import { Button } from '@/components/ui/button';
-import Container from '@/components/ui/container';
+import { Button } from "@/components/ui/button";
+import Container from "@/components/ui/container";
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Stack } from '@/components/ui/stack';
-import { H2, H3 } from '@/components/ui/typography';
-import VirtualList from '@/components/VirtualList';
-import useQueryCached from '@/hooks/useQueryCached';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Stack } from "@/components/ui/stack";
+import { H2, H3 } from "@/components/ui/typography";
+import VirtualList from "@/components/VirtualList";
+import useQueryCached from "@/hooks/useQueryCached";
 
 const tickLength = 6;
 const seqLength = 80;
@@ -72,13 +76,45 @@ export default function Browse() {
     setScale(1);
   };
 
-  const getQuery = (index: number, count: number): [string | null, string] => [
-    chromosome ? `/q?i=${index}&s=${count}&seqid=${chromosome?.seqid}` : null,
-    `select * from sequences where seqid='${chromosome?.seqid}' limit ${count} offset ${index}`,
-  ];
+  const useDataHook = (index: number, count: number) => {
+    const data = useQueryCached(
+      chromosome ? `/q?i=${index}&s=${count}&seqid=${chromosome?.seqid}` : null,
+      `select * from sequences where seqid='${chromosome?.seqid}' limit ${count} offset ${index}`
+    );
+    const features = useQueryCached(
+      chromosome
+        ? `/features?i=${index}&s=${count}&seqid=${chromosome.seqid}`
+        : null,
+      `select * from features where seqid='${chromosome?.seqid}' and start < ${
+        index * seqLength + count
+      } and end > ${index * seqLength}`
+    );
+    const items = data
+      ? data.map((d: any) => ({
+          sequence: d.seq,
+          features: features?.filter(
+            (f: any) => f.start < d.start + seqLength && f.end > d.start
+          ),
+        }))
+      : [];
+    console.log(
+      `select * from features where seqid='${chromosome?.seqid}' and start < ${
+        index * seqLength + count
+      } and end > ${index * seqLength}`
+    );
+    console.log({ features, items, index, seqLength, count });
+    return items;
+  };
 
   const Item = useCallback(
-    (sequence: string | undefined) => {
+    (
+      data:
+        | {
+            sequence: string | undefined;
+            features: any;
+          }
+        | undefined
+    ) => {
       return (
         <>
           <text
@@ -86,13 +122,16 @@ export default function Browse() {
             className="font-mono select-none"
             textLength={itemLength * scale}
           >
-            {sequence}
+            {data?.sequence}
           </text>
           <g transform="translate(0, 20)">
             <path
               d={["M", 0, 0, "L", itemLength * scale, 0].join(" ")}
               stroke="hsl(var(--foreground))"
             />
+          </g>
+          <g transform="translate(0, 40)" fill="hsl(var(--foreground))">
+            <text>{data?.features?.length}</text>
           </g>
         </>
       );
@@ -157,20 +196,8 @@ export default function Browse() {
         count={sequenceCount}
         itemWidth={itemLength * scale}
         itemComponent={Item}
-        getQuery={getQuery}
-        rowKey="seq"
+        useDataHook={useDataHook}
       />
-      <svg className="w-full">
-        <g transform={`translate(0, 20)`} width="100%"></g>
-        <g transform={`translate(5, 40)`}>
-          <text
-            y="15"
-            fill="hsl(var(--foreground))"
-            fontSize={12}
-            textLength="100%"
-          ></text>
-        </g>
-      </svg>
     </Container>
   );
 }
