@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, ReactNode, useReducer } from 'react';
+import { createContext, ReactNode, useReducer } from "react";
 
-interface DbStore {
+interface DbState {
   db: any;
   status: string;
   progress: number;
@@ -14,7 +14,7 @@ export const dbStoreInitialState = {
   progress: 0,
 };
 
-function reducer(state: DbStore, action: Partial<DbStore>) {
+function reducer(state: DbState, action: Partial<DbState>) {
   const newState = {
     ...state,
     ...action,
@@ -23,8 +23,8 @@ function reducer(state: DbStore, action: Partial<DbStore>) {
 }
 
 export const DbStoreContext = createContext<{
-  state: DbStore;
-  dispatch: React.Dispatch<Partial<DbStore>>;
+  state: DbState;
+  dispatch: React.Dispatch<Partial<DbState>>;
 }>({
   state: dbStoreInitialState,
   dispatch: () => {

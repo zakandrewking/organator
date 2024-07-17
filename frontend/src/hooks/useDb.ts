@@ -1,11 +1,16 @@
-import { useContext, useEffect } from 'react';
-import useSWRImmutable from 'swr/immutable';
+/**
+ * Consider using OPFS instead of IndexedDB if we ever need writes
+ * https://www.notion.so/blog/how-we-sped-up-notion-in-the-browser-with-wasm-sqlite
+ */
 
-import { basePath } from '@/config';
-import { DbStoreContext } from '@/stores/DbStore';
+import { useContext, useEffect } from "react";
+import useSWRImmutable from "swr/immutable";
 
-import useIndexedDb from './useIndexedDb';
-import useSqlite3 from './useSqlite3';
+import { basePath } from "@/config";
+import { DbStoreContext } from "@/stores/DbStore";
+
+import useIndexedDb from "./useIndexedDb";
+import useSqlite3 from "./useSqlite3";
 
 export default function useDb() {
   const { state, dispatch } = useContext(DbStoreContext);

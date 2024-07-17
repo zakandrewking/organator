@@ -1,30 +1,34 @@
 "use client";
 
-import Link from 'next/link';
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
-import * as R from 'remeda';
+import Link from "next/link";
+import React, {
+  ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import * as R from "remeda";
 
-import { Button } from '@/components/ui/button';
-import Container from '@/components/ui/container';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import Container from "@/components/ui/container";
+import { Input } from "@/components/ui/input";
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Stack } from '@/components/ui/stack';
-import { H2 } from '@/components/ui/typography';
-import VirtualList, { VirtualListRef } from '@/components/VirtualList';
-import useQueryCached from '@/hooks/useQueryCached';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Stack } from "@/components/ui/stack";
+import { H2 } from "@/components/ui/typography";
+import VirtualList, { VirtualListRef } from "@/components/VirtualList";
+import useQueryCached from "@/hooks/useQueryCached";
+import { BrowserStoreContext, Chromosome } from "@/stores/BrowserStore";
 
-const tickLength = 6;
 const seqLength = 80;
 const pxPerBp = 9.65; // at zoom 1
 const itemLength = seqLength * pxPerBp; // at zoom 1
-
-interface Chromosome {
-  refSeqId: string;
-  chromosomeNumber: number;
-  seqid: string;
-}
 
 interface Sequence {
   seq: string;
@@ -91,14 +95,21 @@ const useDataHook = (index: number, count: number, chromosome?: Chromosome) => {
 };
 
 export default function Browse() {
-  const [scale, setScale] = useState(1);
-  const [bpOffset, setBpOffset] = useState(0);
-  const [bpPerTick, setBpPerTick] = useState(100);
+  // current chromosome
+  const [chromosome, setChromosome] = useState<Chromosome | undefined>();
 
-  // location
-  const [location, setLocation] = useState("");
+  // location & scale
+  const browserStore = useContext(BrowserStoreContext);
+  const scale =
+    browserStore.state.chromosomes?.[chromosome?.seqid ?? ""]?.scale ?? 1;
+  // const location =
+  //   browserStore.state.chromosomes?.[chromosome?.seqid ?? ""].location ?? 0;
+
+  // managed location string for the input
+  const [locationInput, setLocationInput] = useState("");
   const virtualListRef = useRef<VirtualListRef>(null);
 
+  // chromosome list
   const chromosomeResult = useQueryCached(
     "/features?unique=seqid",
     "select seqid, attributes from features group by seqid having min(rowid) order by rowid",
@@ -112,13 +123,23 @@ export default function Browse() {
     }
   ) as Chromosome[] | undefined;
 
-  const [chromosome, setChromosome] = useState<Chromosome | undefined>();
-
   const sequenceCountResult = useQueryCached(
     chromosome ? `/sequenceCount?seqId=${chromosome.seqid}` : null,
     `select count(*) as count from sequences where seqid = '${chromosome?.seqid}'`
   ) as { count: number }[] | undefined;
   const sequenceCount = R.pathOr(sequenceCountResult, [0, "count"], 0);
+
+  // initialize the browser store, only once
+  useEffect(() => {
+    if (chromosomeResult && !browserStore.state.chromosomes) {
+      browserStore.dispatch({
+        chromosomes: R.mapToObj(chromosomeResult, (c) => [
+          c.seqid,
+          { ...c, location: 0, scale: 1 },
+        ]),
+      });
+    }
+  }, [browserStore, chromosomeResult]);
 
   // select the first chromosome
   useEffect(() => {
@@ -132,26 +153,10 @@ export default function Browse() {
   // Handlers
   // --------
 
-  const handleZoomIn = () => {
-    setScale((prev) => scale * 2);
-  };
-
-  const handleZoomOut = () => {
-    setScale((prev) => scale / 2);
-  };
-
-  const handleReset = () => {
-    setScale(1);
-  };
-
-  // ---------------
-  // Computed values
-  // ---------------
-
-  const itemWidthScaled = itemLength * scale;
-
+  // Scroll to the new location. The VirtualList will be responsible for setting
+  // `location` in a callback
   const handleScrollToLocation = () => {
-    const locationNumber = parseInt(location, 10);
+    const locationNumber = parseInt(locationInput, 10);
     if (
       isNaN(locationNumber) ||
       locationNumber < 0 ||
@@ -166,6 +171,62 @@ export default function Browse() {
       virtualListRef.current.scrollToItem(index);
     }
   };
+
+  /**
+   * to avoid a circular dependency, we need to dispatch the location change
+   * only when the user scrolls
+   */
+  // const handleLocationChanged = (location: number) => {
+  //   if (chromosome && browserStore.state.chromosomes) {
+  //     browserStore.dispatch({
+  //       chromosomes: {
+  //         ...browserStore.state.chromosomes,
+  //         [chromosome?.seqid]: [
+  //           {
+  //             ...chromosome,
+  //             location: {
+  //               location,
+  //               scale,
+  //             },
+  //           },
+  //         ],
+  //       },
+  //     });
+  //   }
+  // };
+
+  const handleScaleChanged = (newScale: number) => {
+    const currentChromosomes = browserStore.state.chromosomes;
+    if (chromosome && currentChromosomes) {
+      browserStore.dispatch({
+        chromosomes: {
+          ...currentChromosomes,
+          [chromosome?.seqid]: {
+            ...currentChromosomes[chromosome?.seqid],
+            scale: newScale,
+          },
+        },
+      });
+    }
+  };
+
+  const handleZoomIn = () => {
+    handleScaleChanged(scale * 2);
+  };
+
+  const handleZoomOut = () => {
+    handleScaleChanged(scale / 2);
+  };
+
+  const handleReset = () => {
+    handleScaleChanged(1);
+  };
+
+  // ---------------
+  // Computed values
+  // ---------------
+
+  const itemWidthScaled = itemLength * scale;
 
   const ItemLoader = ({
     index,
@@ -281,37 +342,45 @@ export default function Browse() {
         Length: {((sequenceCount * seqLength) / 1e6).toFixed(3)} Mb
       </div>
 
-      <Stack gap={2} direction="row" className="mb-6">
-        <Button size="sm" onClick={handleZoomIn}>
-          Zoom In
-        </Button>
-        <Button size="sm" onClick={handleZoomOut}>
-          Zoom Out
-        </Button>
-        <Button size="sm" onClick={handleReset}>
-          Reset
-        </Button>
-      </Stack>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleScrollToLocation();
-        }}
+      <Stack
+        gap={6}
+        direction="row"
+        className="mb-6"
+        wrap
+        justifyContent="start"
       >
-        <Stack gap={2} direction="row" className="mb-6">
-          <Input
-            type="number"
-            placeholder="Enter location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="w-40"
-          />
-          <Button size="sm" type="submit">
-            Go to Location
+        <Stack gap={2} direction="row">
+          <Button size="sm" onClick={handleZoomIn}>
+            Zoom In
+          </Button>
+          <Button size="sm" onClick={handleZoomOut}>
+            Zoom Out
+          </Button>
+          <Button size="sm" onClick={handleReset} className="mr-6">
+            Reset
           </Button>
         </Stack>
-      </form>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleScrollToLocation();
+          }}
+        >
+          <Stack gap={2} direction="row">
+            <Input
+              type="number"
+              placeholder="Enter location"
+              value={locationInput}
+              onChange={(e) => setLocationInput(e.target.value)}
+              className="w-40"
+            />
+            <Button size="sm" type="submit">
+              Go to Location
+            </Button>
+          </Stack>
+        </form>
+      </Stack>
 
       <VirtualList
         ref={virtualListRef}

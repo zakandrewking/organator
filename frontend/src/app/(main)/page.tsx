@@ -17,7 +17,6 @@ import { DbStoreContext } from '@/stores/DbStore';
 
 export default function Main() {
   const searchParams = useSearchParams();
-  const { state } = useContext(DbStoreContext);
 
   const page = Number(searchParams.get("page")) || 1;
 
