@@ -1,30 +1,20 @@
 "use client";
 
-import Link from "next/link";
-import React, {
-  ReactNode,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import * as R from "remeda";
+import Link from 'next/link';
+import React, { ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import * as R from 'remeda';
 
-import { Button } from "@/components/ui/button";
-import Container from "@/components/ui/container";
-import { Input } from "@/components/ui/input";
+import { Button } from '@/components/ui/button';
+import Container from '@/components/ui/container';
+import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Stack } from "@/components/ui/stack";
-import { H2 } from "@/components/ui/typography";
-import VirtualList, { VirtualListRef } from "@/components/VirtualList";
-import useQueryCached from "@/hooks/useQueryCached";
-import { BrowserStoreContext, Chromosome } from "@/stores/BrowserStore";
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import { Stack } from '@/components/ui/stack';
+import { H2 } from '@/components/ui/typography';
+import VirtualList, { VirtualListRef } from '@/components/VirtualList';
+import useQueryCached from '@/hooks/useQueryCached';
+import { BrowserStoreContext, Chromosome } from '@/stores/BrowserStore';
 
 const seqLength = 80;
 const pxPerBp = 9.65; // at zoom 1
@@ -102,8 +92,8 @@ export default function Browse() {
   const browserStore = useContext(BrowserStoreContext);
   const scale =
     browserStore.state.chromosomes?.[chromosome?.seqid ?? ""]?.scale ?? 1;
-  // const location =
-  //   browserStore.state.chromosomes?.[chromosome?.seqid ?? ""].location ?? 0;
+  const location =
+    browserStore.state.chromosomes?.[chromosome?.seqid ?? ""]?.location ?? 0;
 
   // managed location string for the input
   const [locationInput, setLocationInput] = useState("");
@@ -149,9 +139,55 @@ export default function Browse() {
     }
   }, [chromosome, chromosomeResult]);
 
+  // scroll to location after the chromosome is set
+  useEffect(() => {
+    if (chromosome && location !== undefined && virtualListRef.current) {
+      virtualListRef.current.scrollToItem(location / seqLength);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chromosome]);
+
   // --------
   // Handlers
   // --------
+
+  /**
+   * to avoid a circular dependency, we need to dispatch the location change
+   * only when the user scrolls
+   */
+  const handleLocationChanged = (location: number) => {
+    const currentChromosomes = browserStore.state.chromosomes;
+    if (chromosome && currentChromosomes) {
+      browserStore.dispatch({
+        chromosomes: {
+          ...currentChromosomes,
+          [chromosome?.seqid]: {
+            ...currentChromosomes[chromosome?.seqid],
+            location,
+          },
+        },
+      });
+    }
+  };
+
+  const onUserScroll = (index: number) => {
+    handleLocationChanged(index * seqLength);
+  };
+
+  const handleScaleChanged = (newScale: number) => {
+    const currentChromosomes = browserStore.state.chromosomes;
+    if (chromosome && currentChromosomes) {
+      browserStore.dispatch({
+        chromosomes: {
+          ...currentChromosomes,
+          [chromosome?.seqid]: {
+            ...currentChromosomes[chromosome?.seqid],
+            scale: newScale,
+          },
+        },
+      });
+    }
+  };
 
   // Scroll to the new location. The VirtualList will be responsible for setting
   // `location` in a callback
@@ -169,44 +205,6 @@ export default function Browse() {
     const index = locationNumber / seqLength;
     if (virtualListRef.current) {
       virtualListRef.current.scrollToItem(index);
-    }
-  };
-
-  /**
-   * to avoid a circular dependency, we need to dispatch the location change
-   * only when the user scrolls
-   */
-  // const handleLocationChanged = (location: number) => {
-  //   if (chromosome && browserStore.state.chromosomes) {
-  //     browserStore.dispatch({
-  //       chromosomes: {
-  //         ...browserStore.state.chromosomes,
-  //         [chromosome?.seqid]: [
-  //           {
-  //             ...chromosome,
-  //             location: {
-  //               location,
-  //               scale,
-  //             },
-  //           },
-  //         ],
-  //       },
-  //     });
-  //   }
-  // };
-
-  const handleScaleChanged = (newScale: number) => {
-    const currentChromosomes = browserStore.state.chromosomes;
-    if (chromosome && currentChromosomes) {
-      browserStore.dispatch({
-        chromosomes: {
-          ...currentChromosomes,
-          [chromosome?.seqid]: {
-            ...currentChromosomes[chromosome?.seqid],
-            scale: newScale,
-          },
-        },
-      });
     }
   };
 
@@ -389,6 +387,7 @@ export default function Browse() {
         itemWidth={itemWidthScaled}
         Item={Item}
         ItemLoader={ItemLoader}
+        onUserScroll={onUserScroll}
       />
     </Container>
   );

@@ -1,7 +1,11 @@
 import './VirtualList.css';
-import { forwardRef, ReactNode, useImperativeHandle, useRef } from 'react';
+import * as R from 'remeda';
+import {
+    forwardRef, ReactNode, useCallback, useEffect, useImperativeHandle, useRef, useState
+} from 'react';
 
 import useContainerDimensions from '@/hooks/useContainerDimensions';
+import useDebounce from '@/hooks/useDebounce';
 import useScrollLeft from '@/hooks/useScrollLeft';
 
 interface VirtualListProps {
@@ -18,17 +22,29 @@ interface VirtualListProps {
     count: number;
     children: (items: any) => ReactNode;
   }) => ReactNode;
+  onUserScroll?: (index: number) => void; // can be float
 }
 
 export interface VirtualListRef {
-  scrollToItem: (index: number) => void;
+  scrollToItem: (index: number) => void; // can be float
 }
 
 const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
-  ({ count, itemWidth, height, Item, ItemLoader }, ref) => {
+  ({ count, itemWidth, height, Item, ItemLoader, onUserScroll }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollLeft = useScrollLeft(containerRef);
     const { width } = useContainerDimensions(containerRef);
+    const [locationOnToggle, setLocationOnToggle] = useState(true);
+
+    // when the user stops scrolling, then set the location
+    useEffect(() => {
+      onUserScroll?.((scrollLeft ?? 0) / itemWidth);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [locationOnToggle]);
+
+    const debouncedOnUserScroll = useDebounce(() =>
+      setLocationOnToggle((prev) => !prev)
+    );
 
     useImperativeHandle(ref, () => ({
       scrollToItem: (index: number) => {
@@ -47,7 +63,11 @@ const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
     const firstItemDisplacement = indexDisplacement * itemWidth;
 
     return (
-      <div className="w-full overflow-auto always-scrollbar" ref={containerRef}>
+      <div
+        className="w-full overflow-auto always-scrollbar"
+        ref={containerRef}
+        onScroll={() => debouncedOnUserScroll.call()}
+      >
         <ItemLoader index={indexDisplacement} count={renderCount}>
           {(items) => (
             <svg width={count * itemWidth} height={`${height}px`}>

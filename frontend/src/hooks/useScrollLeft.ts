@@ -1,10 +1,12 @@
-import { RefObject, useEffect, useState } from 'react';
+import { RefObject, useEffect, useState } from "react";
 
 export default function useScrollLeft(ref: RefObject<HTMLDivElement>) {
   const [scrollLeft, setScrollLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    const getScrollLeft = () => ref.current?.scrollLeft ?? null;
+    const getScrollLeft = () => {
+      return ref.current?.scrollLeft ?? null;
+    };
 
     setScrollLeft(getScrollLeft());
 
