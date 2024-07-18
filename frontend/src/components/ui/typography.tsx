@@ -1,6 +1,6 @@
-import { ReactNode } from "react";
+import { ReactNode } from 'react';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 export function H1({
   gutterBottom = true,
@@ -29,7 +29,7 @@ export function H2({
   children: ReactNode;
 }) {
   let classes =
-    "mt-10 scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0";
+    "mt-6 scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0";
   if (gutterBottom) {
     classes += " mb-5";
   }

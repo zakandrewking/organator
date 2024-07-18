@@ -1,19 +1,14 @@
 "use client";
 
-// TODO use indexedDb to store the data
-// TODO github pages version is not keeping state between pages
-
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useContext } from 'react';
 
 import { Button } from '@/components/ui/button';
 import Container from '@/components/ui/container';
 import { List, ListItem, ListItemContent } from '@/components/ui/list';
 import { Stack } from '@/components/ui/stack';
-import { H3, H4 } from '@/components/ui/typography';
+import { H2, H4 } from '@/components/ui/typography';
 import useQueryCached from '@/hooks/useQueryCached';
-import { DbStoreContext } from '@/stores/DbStore';
 
 export default function Main() {
   const searchParams = useSearchParams();
@@ -36,13 +31,16 @@ export default function Main() {
 
   return (
     <Container gap={4}>
-      <H3 gutterBottom={false}>Plasmodium falciparum (Malaria) Genes</H3>
+      <H2 gutterBottom={false}>Plasmodium falciparum (Malaria) Genes</H2>
       <Stack direction="row" gap={2}>
-        <Button asChild>
+        <Button asChild variant="outline">
           <Link href="/browse">Genome Browser</Link>
         </Button>
-        <Button asChild>
-          <Link href="/downloads">Downloads</Link>
+        <Button asChild variant="outline">
+          <Link href="/downloads">Manage Downloads</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="https://github.com/zakandrewking/organator">GitHub</Link>
         </Button>
       </Stack>
       <H4>Total Genes: {geneCount && geneCount[0].count}</H4>

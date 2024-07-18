@@ -300,7 +300,7 @@ export default function Browse() {
 
   return (
     <Container>
-      <Button asChild>
+      <Button asChild variant="outline">
         <Link href="/">{"<"} Genes</Link>
       </Button>
       <H2>Plasmodium falciparum (Malaria) Genome</H2>
