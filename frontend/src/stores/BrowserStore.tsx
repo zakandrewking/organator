@@ -17,6 +17,31 @@ export interface ChromosomeWithLocation extends Chromosome {
   scale: number;
 }
 
+export interface Sequence {
+  seq: string;
+  seqid: string;
+  start: number;
+}
+
+export interface Feature {
+  attributes: string;
+  bin: number;
+  end: number;
+  extra: string;
+  featuretype: string;
+  frame: string;
+  id: string;
+  score: string;
+  seqid: string;
+  source: string;
+  start: number;
+  strand: string;
+}
+
+export interface FeatureWithIndex extends Feature {
+  index: number;
+}
+
 export interface BrowserState {
   chromosomes?: {
     [seqid: string]: ChromosomeWithLocation;

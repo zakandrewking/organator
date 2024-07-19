@@ -25,36 +25,16 @@ import { Stack } from "@/components/ui/stack";
 import { H2 } from "@/components/ui/typography";
 import VirtualList, { VirtualListRef } from "@/components/VirtualList";
 import useQueryCached from "@/hooks/useQueryCached";
-import { BrowserStoreContext, Chromosome } from "@/stores/BrowserStore";
+import {
+  BrowserStoreContext,
+  Chromosome,
+  Feature,
+  FeatureWithIndex,
+  Sequence,
+} from "@/stores/BrowserStore";
 
-const seqLength = 80;
-const pxPerBp = 9.65; // at zoom 1
-const itemLength = seqLength * pxPerBp; // at zoom 1
-
-interface Sequence {
-  seq: string;
-  seqid: string;
-  start: number;
-}
-
-interface Feature {
-  attributes: string;
-  bin: number;
-  end: number;
-  extra: string;
-  featuretype: string;
-  frame: string;
-  id: string;
-  score: string;
-  seqid: string;
-  source: string;
-  start: number;
-  strand: string;
-}
-
-interface FeatureWithIndex extends Feature {
-  index: number;
-}
+import { itemLength, pxPerBp, seqLength } from "./config";
+import Item from "./Item";
 
 /**
  * Get sequence and feature data in chunks from the database
@@ -272,65 +252,6 @@ export default function Browse() {
     return <>{children(items)}</>;
   };
 
-  /**
-   * Draw the sequence and features
-   */
-  const Item = ({
-    data,
-  }: {
-    data?: {
-      sequence: Sequence;
-      features: FeatureWithIndex[];
-    };
-  }) => (
-    <>
-      <text
-        fill="hsl(var(--foreground))"
-        className="font-mono select-none"
-        textLength={itemWidthScaled}
-      >
-        {data?.sequence.seq}
-      </text>
-      <g transform="translate(0, 20)">
-        <path
-          d={["M", 0, 0, "L", itemWidthScaled, 0].join(" ")}
-          stroke="hsl(var(--foreground))"
-        />
-      </g>
-      <g transform="translate(0, 30)">
-        {data?.features.map((f) => {
-          const startPx =
-            f.start < data.sequence.start
-              ? 0
-              : (f.start - data.sequence.start - 1) * pxPerBp * scale;
-          const endPx =
-            f.end > data.sequence.start + seqLength
-              ? itemWidthScaled
-              : (f.end - data.sequence.start) * pxPerBp * scale;
-          const widthPx = endPx - startPx;
-          return (
-            <g key={f.id} transform={`translate(${startPx}, ${20 * f.index})`}>
-              <rect
-                width={widthPx}
-                height="15"
-                fill="hsl(var(--foreground))"
-                opacity="0.5"
-              />
-              <text
-                x={0}
-                y={10}
-                fill="hsl(var(--background))"
-                className="font-mono select-none text-xs"
-              >
-                {f.id}
-              </text>
-            </g>
-          );
-        })}
-      </g>
-    </>
-  );
-
   return (
     <Container>
       <Button asChild variant="outline">
@@ -420,6 +341,7 @@ export default function Browse() {
         itemWidth={itemWidthScaled}
         Item={Item}
         ItemLoader={ItemLoader}
+        itemConfig={{ scale }}
         onUserScroll={onUserScroll}
       />
     </Container>

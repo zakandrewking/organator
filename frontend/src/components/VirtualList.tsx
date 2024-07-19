@@ -1,18 +1,22 @@
-import './VirtualList.css';
-import * as R from 'remeda';
+import "./VirtualList.css";
 import {
-    forwardRef, ReactNode, useCallback, useEffect, useImperativeHandle, useRef, useState
-} from 'react';
+  forwardRef,
+  ReactNode,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
-import useContainerDimensions from '@/hooks/useContainerDimensions';
-import useDebounce from '@/hooks/useDebounce';
-import useScrollLeft from '@/hooks/useScrollLeft';
+import useContainerDimensions from "@/hooks/useContainerDimensions";
+import useDebounce from "@/hooks/useDebounce";
+import useScrollLeft from "@/hooks/useScrollLeft";
 
 interface VirtualListProps {
   count: number;
   itemWidth: number;
   height: number;
-  Item: (data: any | undefined) => ReactNode;
+  Item: (data?: any, config?: any) => ReactNode;
   ItemLoader: ({
     index,
     count,
@@ -22,6 +26,7 @@ interface VirtualListProps {
     count: number;
     children: (items: any) => ReactNode;
   }) => ReactNode;
+  itemConfig?: any;
   onUserScroll?: (index: number) => void; // can be float
 }
 
@@ -30,7 +35,10 @@ export interface VirtualListRef {
 }
 
 const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
-  ({ count, itemWidth, height, Item, ItemLoader, onUserScroll }, ref) => {
+  (
+    { count, itemWidth, height, Item, ItemLoader, itemConfig, onUserScroll },
+    ref
+  ) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollLeft = useScrollLeft(containerRef);
     const { width } = useContainerDimensions(containerRef);
@@ -69,20 +77,22 @@ const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
         onScroll={() => debouncedOnUserScroll.call()}
       >
         <ItemLoader index={indexDisplacement} count={renderCount}>
-          {(items) => (
-            <svg width={count * itemWidth} height={`${height}px`}>
-              {Array.from({ length: renderCount }).map((_, i) => (
-                <g
-                  transform={`translate(${
-                    i * itemWidth + firstItemDisplacement
-                  }, 20)`}
-                  key={i}
-                >
-                  {Item({ data: items[i] })}
-                </g>
-              ))}
-            </svg>
-          )}
+          {(items) => {
+            return (
+              <svg width={count * itemWidth} height={`${height}px`}>
+                {Array.from({ length: renderCount }).map((_, i) => (
+                  <g
+                    transform={`translate(${
+                      i * itemWidth + firstItemDisplacement
+                    }, 20)`}
+                    key={i}
+                  >
+                    {Item({ data: items[i], itemConfig })}
+                  </g>
+                ))}
+              </svg>
+            );
+          }}
         </ItemLoader>
       </div>
     );
