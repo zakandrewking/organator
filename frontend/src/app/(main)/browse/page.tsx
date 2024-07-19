@@ -1,20 +1,31 @@
 "use client";
 
-import Link from 'next/link';
-import React, { ReactNode, useContext, useEffect, useRef, useState } from 'react';
-import * as R from 'remeda';
+import Link from "next/link";
+import React, {
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import * as R from "remeda";
 
-import { Button } from '@/components/ui/button';
-import Container from '@/components/ui/container';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import Container from "@/components/ui/container";
+import { Input } from "@/components/ui/input";
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Stack } from '@/components/ui/stack';
-import { H2 } from '@/components/ui/typography';
-import VirtualList, { VirtualListRef } from '@/components/VirtualList';
-import useQueryCached from '@/hooks/useQueryCached';
-import { BrowserStoreContext, Chromosome } from '@/stores/BrowserStore';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Stack } from "@/components/ui/stack";
+import { H2 } from "@/components/ui/typography";
+import VirtualList, { VirtualListRef } from "@/components/VirtualList";
+import useQueryCached from "@/hooks/useQueryCached";
+import { BrowserStoreContext, Chromosome } from "@/stores/BrowserStore";
 
 const seqLength = 80;
 const pxPerBp = 9.65; // at zoom 1
@@ -85,11 +96,12 @@ const useDataHook = (index: number, count: number, chromosome?: Chromosome) => {
 };
 
 export default function Browse() {
-  // current chromosome
-  const [chromosome, setChromosome] = useState<Chromosome | undefined>();
-
-  // location & scale
+  // Load the browser store
   const browserStore = useContext(BrowserStoreContext);
+  const chromosome =
+    browserStore.state.chromosomes?.[
+      browserStore.state.selectedChromosomeSeqId ?? ""
+    ];
   const scale =
     browserStore.state.chromosomes?.[chromosome?.seqid ?? ""]?.scale ?? 1;
   const location =
@@ -119,37 +131,19 @@ export default function Browse() {
   ) as { count: number }[] | undefined;
   const sequenceCount = R.pathOr(sequenceCountResult, [0, "count"], 0);
 
-  // initialize the browser store, only once
-  useEffect(() => {
-    if (chromosomeResult && !browserStore.state.chromosomes) {
-      browserStore.dispatch({
-        chromosomes: R.mapToObj(chromosomeResult, (c) => [
-          c.seqid,
-          { ...c, location: 0, scale: 1 },
-        ]),
-      });
-    }
-  }, [browserStore, chromosomeResult]);
-
-  // select the first chromosome
-  useEffect(() => {
-    const firstChromosome = chromosomeResult?.[0];
-    if (firstChromosome && !chromosome) {
-      setChromosome(firstChromosome);
-    }
-  }, [chromosome, chromosomeResult]);
-
-  // scroll to location after the chromosome is set
-  useEffect(() => {
-    if (chromosome && location !== undefined && virtualListRef.current) {
-      virtualListRef.current.scrollToItem(location / seqLength);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chromosome]);
-
   // --------
   // Handlers
   // --------
+
+  const handleChromosomeChange = useCallback(
+    (seqid: string) => {
+      browserStore.dispatch({
+        chromosomes: browserStore.state.chromosomes,
+        selectedChromosomeSeqId: seqid,
+      });
+    },
+    [browserStore]
+  );
 
   /**
    * to avoid a circular dependency, we need to dispatch the location change
@@ -219,6 +213,45 @@ export default function Browse() {
   const handleReset = () => {
     handleScaleChanged(1);
   };
+
+  // ------------
+  // Side Effects
+  // ------------
+
+  // initialize the browser store, only once
+  useEffect(() => {
+    if (chromosomeResult && !browserStore.state.chromosomes) {
+      browserStore.dispatch({
+        chromosomes: R.mapToObj(chromosomeResult, (c) => [
+          c.seqid,
+          { ...c, location: 0, scale: 1 },
+        ]),
+      });
+    }
+  }, [browserStore, chromosomeResult]);
+
+  // initialize the first chromosome
+  useEffect(() => {
+    const firstChromosome = chromosomeResult?.[0];
+    const selectedChromosomeSeqId = browserStore.state.selectedChromosomeSeqId;
+    if (firstChromosome && !selectedChromosomeSeqId) {
+      handleChromosomeChange(firstChromosome.seqid);
+    }
+  }, [browserStore, chromosomeResult, handleChromosomeChange]);
+
+  // scroll to location after the view loads or the chromosome is set
+  useEffect(() => {
+    if (chromosome && location !== undefined && virtualListRef.current) {
+      virtualListRef.current.scrollToItem(location / seqLength);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (chromosome && location !== undefined && virtualListRef.current) {
+      virtualListRef.current.scrollToItem(location / seqLength);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chromosome?.seqid]);
 
   // ---------------
   // Computed values
@@ -309,7 +342,7 @@ export default function Browse() {
         value={chromosome?.seqid}
         onValueChange={(value) => {
           const selected = chromosomeResult?.find((c) => c.seqid === value);
-          if (selected) setChromosome(selected);
+          if (selected) handleChromosomeChange(selected.seqid);
         }}
       >
         <SelectTrigger className="w-[200px] mb-4">

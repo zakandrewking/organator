@@ -21,6 +21,7 @@ export interface BrowserState {
   chromosomes?: {
     [seqid: string]: ChromosomeWithLocation;
   };
+  selectedChromosomeSeqId?: string;
 }
 
 export const browserInitialState: BrowserState = {};
