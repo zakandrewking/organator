@@ -1,13 +1,13 @@
 "use client";
 
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-import { Button } from '@/components/ui/button';
-import Container from '@/components/ui/container';
-import { Stack } from '@/components/ui/stack';
-import { H3, H4 } from '@/components/ui/typography';
-import useQueryCached from '@/hooks/useQueryCached';
+import { Button } from "@/components/ui/button";
+import Container from "@/components/ui/container";
+import { Stack } from "@/components/ui/stack";
+import { H3, H4 } from "@/components/ui/typography";
+import useQueryCached from "@/hooks/useQueryCached";
 
 const maxRows = 1000;
 const rowLen = 80;
@@ -29,8 +29,8 @@ export default function Gene() {
     gene && `/sequence?id=${searchParams.get("id")}`,
     `select * from sequences
      where seqid = '${gene && gene.seqid}' and
-     start > ${gene && gene.start - rowLen} and
-     start < ${gene && gene.end}
+     start >= ${gene && gene.start - rowLen} and
+     start <= ${gene && gene.end}
      limit ${maxRows}`
   );
 
@@ -51,7 +51,7 @@ export default function Gene() {
         ...seq,
         seq:
           i === sequenceFirstTrim.length - 1
-            ? seq.seq.slice(0, gene.end - seq.start)
+            ? seq.seq.slice(0, gene.end - seq.start + 1)
             : seq.seq,
       };
     });

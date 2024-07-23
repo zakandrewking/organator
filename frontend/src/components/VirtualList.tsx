@@ -13,18 +13,20 @@ import useDebounce from "@/hooks/useDebounce";
 import useScrollLeft from "@/hooks/useScrollLeft";
 
 interface VirtualListProps {
-  count: number;
+  itemCount: number;
   itemWidth: number;
   height: number;
-  Item: (data?: any, config?: any) => ReactNode;
+  Item: (data?: any, itemConfig?: any) => ReactNode;
   ItemLoader: ({
     index,
     count,
     children,
+    itemConfig,
   }: {
     index: number;
     count: number;
     children: (items: any) => ReactNode;
+    itemConfig?: any;
   }) => ReactNode;
   itemConfig?: any;
   onUserScroll?: (index: number) => void; // can be float
@@ -36,7 +38,15 @@ export interface VirtualListRef {
 
 const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
   (
-    { count, itemWidth, height, Item, ItemLoader, itemConfig, onUserScroll },
+    {
+      itemCount,
+      itemWidth,
+      height,
+      Item,
+      ItemLoader,
+      itemConfig,
+      onUserScroll,
+    },
     ref
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -76,10 +86,14 @@ const VirtualList = forwardRef<VirtualListRef, VirtualListProps>(
         ref={containerRef}
         onScroll={() => debouncedOnUserScroll.call()}
       >
-        <ItemLoader index={indexDisplacement} count={renderCount}>
+        <ItemLoader
+          index={indexDisplacement}
+          count={renderCount}
+          itemConfig={itemConfig}
+        >
           {(items) => {
             return (
-              <svg width={count * itemWidth} height={`${height}px`}>
+              <svg width={`${itemCount * itemWidth}px`} height={`${height}px`}>
                 {Array.from({ length: renderCount }).map((_, i) => (
                   <g
                     transform={`translate(${

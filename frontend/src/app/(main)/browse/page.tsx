@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import React, {
-  ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -25,55 +24,11 @@ import { Stack } from "@/components/ui/stack";
 import { H2 } from "@/components/ui/typography";
 import VirtualList, { VirtualListRef } from "@/components/VirtualList";
 import useQueryCached from "@/hooks/useQueryCached";
-import {
-  BrowserStoreContext,
-  Chromosome,
-  Feature,
-  FeatureWithIndex,
-  Sequence,
-} from "@/stores/BrowserStore";
+import { bpPerItemUnscaled, itemWidthPx, seqSize } from "@/lib/browserConfig";
+import { BrowserStoreContext, Chromosome } from "@/stores/BrowserStore";
 
-import { itemLength, pxPerBp, seqLength } from "./config";
 import Item from "./Item";
-
-/**
- * Get sequence and feature data in chunks from the database
- */
-const useDataHook = (index: number, count: number, chromosome?: Chromosome) => {
-  // get sequences in this chunk
-  const data = useQueryCached(
-    chromosome ? `/q?i=${index}&s=${count}&seqid=${chromosome?.seqid}` : null,
-    `select * from sequences where seqid='${chromosome?.seqid}' limit ${count} offset ${index}`
-  ) as Sequence[] | undefined;
-
-  // get all features in this chunk
-  const features = useQueryCached(
-    chromosome
-      ? `/features?i=${index}&s=${count}&seqid=${chromosome.seqid}`
-      : null,
-    `select * from features where seqid='${chromosome?.seqid}' and start <= ${
-      (index + count) * seqLength
-    } and end >= ${index * seqLength}`
-  ) as Feature[] | undefined;
-
-  // the vertical index of the features should be consistent, so we need to set
-  // it up here
-  const featuresWithIndex = features?.map((f, i) => ({
-    ...f,
-    index: i,
-  }));
-
-  const items = data
-    ? data.map((s) => ({
-        sequence: s,
-        features:
-          featuresWithIndex?.filter(
-            (f: any) => f.start < s.start + seqLength && f.end > s.start
-          ) ?? [],
-      }))
-    : [];
-  return items;
-};
+import ItemLoader from "./ItemLoader";
 
 export default function Browse() {
   // Load the browser store
@@ -111,6 +66,12 @@ export default function Browse() {
   ) as { count: number }[] | undefined;
   const sequenceCount = R.pathOr(sequenceCountResult, [0, "count"], 0);
 
+  // total items should be greater than require items
+  // TODO set a min scale value
+  const bpPerItem = bpPerItemUnscaled / scale;
+  const minItems = (sequenceCount * seqSize) / bpPerItem;
+  const itemCount = Math.ceil(minItems);
+
   // --------
   // Handlers
   // --------
@@ -145,7 +106,7 @@ export default function Browse() {
   };
 
   const onUserScroll = (index: number) => {
-    handleLocationChanged(index * seqLength);
+    handleLocationChanged(index * seqSize);
   };
 
   const handleScaleChanged = (newScale: number) => {
@@ -170,13 +131,13 @@ export default function Browse() {
     if (
       isNaN(locationNumber) ||
       locationNumber < 0 ||
-      locationNumber >= sequenceCount * seqLength
+      locationNumber >= sequenceCount * seqSize
     ) {
       // TODO switch to a toast
       alert("Please enter a valid location within the chromosome range.");
       return;
     }
-    const index = locationNumber / seqLength;
+    const index = locationNumber / bpPerItem;
     if (virtualListRef.current) {
       virtualListRef.current.scrollToItem(index);
     }
@@ -222,13 +183,13 @@ export default function Browse() {
   // scroll to location after the view loads or the chromosome is set
   useEffect(() => {
     if (chromosome && location !== undefined && virtualListRef.current) {
-      virtualListRef.current.scrollToItem(location / seqLength);
+      virtualListRef.current.scrollToItem(location / seqSize);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (chromosome && location !== undefined && virtualListRef.current) {
-      virtualListRef.current.scrollToItem(location / seqLength);
+      virtualListRef.current.scrollToItem(location / seqSize);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chromosome?.seqid]);
@@ -236,21 +197,6 @@ export default function Browse() {
   // ---------------
   // Computed values
   // ---------------
-
-  const itemWidthScaled = itemLength * scale;
-
-  const ItemLoader = ({
-    index,
-    count,
-    children,
-  }: {
-    index: number;
-    count: number;
-    children: (items: any) => ReactNode;
-  }) => {
-    const items = useDataHook(index, count, chromosome);
-    return <>{children(items)}</>;
-  };
 
   return (
     <Container>
@@ -291,7 +237,7 @@ export default function Browse() {
         </Button>
       </div>
       <div className="mb-6">
-        Length: {((sequenceCount * seqLength) / 1e6).toFixed(3)} Mb
+        Length: {((sequenceCount * seqSize) / 1e6).toFixed(3)} Mb
       </div>
 
       <Stack
@@ -336,12 +282,12 @@ export default function Browse() {
 
       <VirtualList
         ref={virtualListRef}
-        count={sequenceCount}
+        itemCount={itemCount}
         height={200}
-        itemWidth={itemWidthScaled}
+        itemWidth={itemWidthPx}
         Item={Item}
         ItemLoader={ItemLoader}
-        itemConfig={{ scale }}
+        itemConfig={{ scale, chromosome }}
         onUserScroll={onUserScroll}
       />
     </Container>

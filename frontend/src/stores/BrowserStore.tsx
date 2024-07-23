@@ -20,13 +20,13 @@ export interface ChromosomeWithLocation extends Chromosome {
 export interface Sequence {
   seq: string;
   seqid: string;
-  start: number;
+  start: number; // 1-indexed
 }
 
 export interface Feature {
   attributes: string;
   bin: number;
-  end: number;
+  end: number; // 1-indexed
   extra: string;
   featuretype: string;
   frame: string;
@@ -34,12 +34,12 @@ export interface Feature {
   score: string;
   seqid: string;
   source: string;
-  start: number;
+  start: number; // 1-indexed
   strand: string;
 }
 
 export interface FeatureWithIndex extends Feature {
-  index: number;
+  vertical: number; // 0-indexed
 }
 
 export interface BrowserState {
